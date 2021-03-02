@@ -1,0 +1,6 @@
+_METAHOME
+metahome
+DATA.zip
+*.metahome.map
+zig-cache/
+
