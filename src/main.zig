@@ -128,12 +128,12 @@ export fn init() void {
     pip = sg.makePipeline(pip_desc);
     stime.setup();
 
-    cworld = map.loadMap(mapdata) catch unreachable;
+    cworld = map.loadMap(mapdata) catch @panic("Error loading world :(");
     clevel = cworld.levels[0];
 
     if (comptime DEBUGMODE) {
         var sdtx_desc: sdtx.Desc = .{};
-        sdtx_desc.fonts[0] = sdtx.fontKc853();
+        sdtx_desc.fonts[0] = @import("fontdata.zig").fontdesc;
         sdtx.setup(sdtx_desc);
         sdtx.font(0);
     }
@@ -156,12 +156,12 @@ export fn frame() void {
         sdtx.origin(1, 1);
 
         sdtx.color1i(0xFFAA67C7);
-        sdtx.print("h o m e : //////////////////////////////\n\n", .{});
+        sdtx.print("m e t a h o m e : //////////////////////////////\n\n", .{});
 
         sdtx.color1i(0xFFFFAE00);
-        sdtx.print("hello again! =D\nwelcome to my little side-project!\n\n", .{});
+        sdtx.print("hello again! =)\nwelcome to my little side-project!\n\n", .{});
 
-        sdtx.print("Objects on screen: ", .{});
+        sdtx.print("objects on screen: ", .{});
         sdtx.color1i(0xFFAA67C7);
         sdtx.print("{}\n", .{clevel.tiles.len});
     }
@@ -285,7 +285,7 @@ pub fn main() void {
         .fail_cb = fail,
         .width = 1024,
         .height = 600,
-        .window_title = "h o m e",
+        .window_title = "m e t a h o m e",
     });
 }
 

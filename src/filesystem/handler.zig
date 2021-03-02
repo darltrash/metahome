@@ -1,4 +1,4 @@
-const DEBUGMODE = @import("builtin").mode == @import("builtin").Mode.Debug;
+const DEBUGMODE = true;
 const ISWINDOWS = @import("builtin").os.tag == .windows;
 const std = @import("std");
 const panic = std.debug.panic;
@@ -10,22 +10,22 @@ pub const raw = @cImport({
 pub var zipfs: *raw.zip_t = undefined;
 
 pub fn init() void {
-    if (comptime DEBUGMODE) {
+    if (comptime !DEBUGMODE) {
         // Posix-only support rn, I am sorry :(
         zipfs = raw.zip_open("DATA.zip", 0, 'r') orelse @panic("Could not load ZIPFS");
         std.debug.warn("kuba--/zip loaded", .{});
-    }
+    } 
 }
 
 pub fn deinit() void {
-    if (comptime DEBUGMODE) {
+    if (comptime !DEBUGMODE) {
         raw.zip_close(zipfs);
     }
 }
 
 pub fn load(path: [:0]const u8) []u8 {
     var output: []u8 = undefined;
-    if (comptime DEBUGMODE) {
+    if (comptime !DEBUGMODE) {
         std.debug.warn("UND_UND_ ", .{});
         var buffer: [*c]?*c_void = undefined;
         var buffersize: usize = undefined;
@@ -42,6 +42,13 @@ pub fn load(path: [:0]const u8) []u8 {
         }
 
         output = @ptrCast([*]u8, buffer)[0..buffersize];
+    } else {
+        var buffer = std.ArrayList(u8).init(std.heap.c_allocator);
+        defer output = buffer.toOwnedSlice();
+
+        var file = std.fs.cwd().openFile(path, .{.read = true}) catch panic("Error trying to load {s}!", .{path});
+        defer file.close();
+        file.reader().readAllArrayList(&buffer, 99999999) catch panic("Could not read {s}1", .{path}); // that's a lot, i know 
     }
 
     return output;
