@@ -7,6 +7,7 @@ const sapp = @import("sokol").app;
 const stime = @import("sokol").time;
 const sgapp = @import("sokol").app_gfx_glue;
 const sdtx = @import("sokol").debugtext;
+const sa = @import("sokol").audio;
 
 const PNG = @import("fileformats").Png;
 const map = @import("maploader.zig");
@@ -23,6 +24,10 @@ const TILE_WIDTH = 8;
 const TILE_HEIGHT = 8;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub fn times(n: isize) callconv(.Inline) []const void { // Thanks shake
+    return @as([*]void, undefined)[0..@intCast(usize, n)];
+}
 
 pub const Texture = struct {
     sktexture: sg.Image,
@@ -78,7 +83,10 @@ var tileset: Texture = undefined;
 
 const mapdata = @embedFile("../maps/test.metahome.map");
 
+export fn audio(buffer: [*c]f32, frames: i32, channels: i32) void {}
+
 export fn init() void {
+    sa.setup(.{ .stream_cb = audio });
     fs.init();
 
     sg.setup(.{ .context = sgapp.context() });
@@ -293,6 +301,7 @@ pub fn main() void {
 
 export fn cleanup() void {
     sg.shutdown();
+    sa.shutdown();
     _ = fs.deinit();
     var leaked = GPA.deinit();
 }
