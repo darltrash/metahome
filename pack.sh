@@ -26,7 +26,7 @@ cat zig-cache/bin/metahome DATA.zip > metahome
 echo "> Cleaning the horrible mess that just happened"
 
 rm FELLOWHACKAHZ.txt
-#rm DATA.zip
+rm DATA.zip
 
 chmod +x metahome
 echo "And done! Have fun!"
