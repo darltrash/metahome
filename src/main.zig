@@ -164,7 +164,7 @@ export fn frame() void {
         sdtx.origin(1, 1);
 
         sdtx.color1i(0xFFAA67C7);
-        sdtx.print("m e t a h o m e : //////////////////////////////\n\n", .{});
+        sdtx.print("m e t a h o m e : ---------------------------------\n\n", .{});
 
         sdtx.color1i(0xFFFFAE00);
         sdtx.print("hello again! =)\nwelcome to my little side-project!\n\n", .{});
