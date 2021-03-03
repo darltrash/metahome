@@ -1,29 +1,37 @@
 const msgpack = @import("fileformats/msgpack.zig");
 const std = @import("std");
 
-pub const ActorKinds = enum {
+pub const ActorKinds = enum(u4) {
     Player, Enemy
 };
 
-pub const Actor = struct {
-    x: f32,
-    y: f32,
-    z: f32,
-    isPlayer: bool = false,
-    vx: f32 = 0,
-    vy: f32 = 0,
-    vm: f32 = 50,
+pub const Vec3 = struct {
+    x: f32 = 0,
+    y: f32 = 0,
+    z: f32 = 0,
+};
 
-    sx: u32 = 0,
-    sy: u32 = 0,
+pub const Sprite = struct {
+    x: u32 = 0, y: u32 = 0
+};
+
+pub const Actor = struct {
+    pos: Vec3 = .{ .x = 0, .y = 0, .z = 0 },
+    vel: Vec3 = .{ .x = 0, .y = 0, .z = 0 },
+    spr: Sprite = .{ .x = 0, .y = 0 },
+
+    process: bool = true,
+    visible: bool = true,
+    kind: ActorKinds = undefined,
 };
 
 pub const Tile = struct {
-    x: u32, y: u32, c: bool = false, sx: u32 = 0, sy: u32 = 0
+    x: u32, y: u32, collide: bool = false, spr: Sprite = .{ .x = 0, .y = 0 }
 };
 
 pub const Level = struct {
-    tiles: []Tile
+    tiles: []Tile,
+    actors: []Actor,
 };
 
 pub const World = struct {
@@ -52,12 +60,21 @@ pub fn loadMap(data: []const u8) !World {
             _ = try levtiles.append(Tile{
                 .x = @intCast(u32, x.UInt),
                 .y = @intCast(u32, y.UInt),
-                .c = c.Boolean,
-                .sx = @intCast(u32, sx.UInt),
-                .sy = @intCast(u32, sy.UInt),
+                .collide = c.Boolean,
+                .spr = .{
+                    .x = @intCast(u32, sx.UInt),
+                    .y = @intCast(u32, sy.UInt),
+                },
             });
         }
-        _ = try _worldlevels.append(Level{ .tiles = levtiles.toOwnedSlice() });
+
+        var levactors = std.ArrayList(Actor).init(std.heap.page_allocator);
+        _ = try levactors.append(Actor{ .kind = .Player });
+
+        _ = try _worldlevels.append(Level{
+            .tiles = levtiles.toOwnedSlice(),
+            .actors = levactors.toOwnedSlice(),
+        });
     }
     return World{ .levels = _worldlevels.toOwnedSlice() };
 }

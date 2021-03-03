@@ -23,13 +23,7 @@ const PIXEL_HEIGHT = 2;
 const TILE_WIDTH = 8;
 const TILE_HEIGHT = 8;
 
-pub const vec2 = struct {
-    x: f32, y: f32
-};
-var camera: vec2 = .{
-    .x = 0,
-    .y = 0,
-};
+var camera: map.Vec3 = .{};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -192,33 +186,17 @@ export fn frame() void {
     var TILE_ROWS = @intToFloat(f32, tileset.width) / TILE_WIDTH;
     var TILE_COLUMNS = @intToFloat(f32, tileset.height) / TILE_HEIGHT;
 
-    if (keys.down) {
-        camera.y += delta * 300;
-    }
-
-    if (keys.right) {
-        camera.x += delta * 300;
-    }
-
-    if (keys.up) {
-        camera.y -= delta * 300;
-    }
-
-    if (keys.left) {
-        camera.x -= delta * 300;
-    }
-
     for (clevel.tiles) |tile| {
-        const scale = math.Mat4.scale((TILE_WIDTH * PIXEL_WIDTH) / screenWidth, (TILE_HEIGHT * PIXEL_HEIGHT) / screenHeight, 1);
+        const scale = math.Mat4.scale((TILE_WIDTH * PIXEL_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * PIXEL_HEIGHT * camera.z) / screenHeight, 1);
         const trans = math.Mat4.translate(.{
-            .x = (@intToFloat(f32, tile.x * PIXEL_WIDTH * 2) - camera.x) / screenWidth,
-            .y = (@intToFloat(f32, tile.y * PIXEL_HEIGHT * 2) - camera.y) / -screenHeight,
+            .x = ((@intToFloat(f32, tile.x * PIXEL_WIDTH * 2) * camera.z) - (camera.x * 4)) / screenWidth,
+            .y = ((@intToFloat(f32, tile.y * PIXEL_HEIGHT * 2) * camera.z) - (camera.y * 4)) / -screenHeight,
             .z = 0,
         });
 
         var alpha_kinda: f32 = 0.3;
 
-        if (keys.attack and tile.c) {
+        if (keys.attack and tile.collide) {
             alpha_kinda = 0.7;
         }
 
@@ -227,14 +205,76 @@ export fn frame() void {
             .cropping = .{
                 TILE_HEIGHT / @intToFloat(f32, tileset.height),
                 TILE_WIDTH / @intToFloat(f32, tileset.width),
-                @intToFloat(f32, tile.sx) / @intToFloat(f32, tileset.width),
-                @intToFloat(f32, tile.sy) / @intToFloat(f32, tileset.height),
+                @intToFloat(f32, tile.spr.x) / @intToFloat(f32, tileset.width),
+                @intToFloat(f32, tile.spr.y) / @intToFloat(f32, tileset.height),
             },
         }));
 
         sg.applyUniforms(.VS, shd.SLOT_vs_params, sg.asRange(shd.VsParams{ .mvp = math.Mat4.mul(trans, scale) }));
 
         sg.draw(0, 6, 1);
+    }
+
+    for (clevel.actors) |*actor| {
+        if (actor.process) {
+            switch (actor.kind) {
+                .Player => {
+                    actor.vel.x = 0;
+                    actor.vel.y = 0;
+                    actor.spr.x = 4;
+                    actor.spr.y = 5;
+
+                    if (keys.down) {
+                        actor.vel.y += 50;
+                    }
+
+                    if (keys.right) {
+                        actor.vel.x += 50;
+                    }
+
+                    if (keys.up) {
+                        actor.vel.y -= 50;
+                    }
+
+                    if (keys.left) {
+                        actor.vel.x -= 50;
+                    }
+
+                    camera.x = actor.pos.x;
+                    camera.y = actor.pos.y;
+                    camera.z = 1;
+                },
+
+                else => {},
+            }
+
+            actor.pos.x += actor.vel.x * delta;
+            actor.pos.y += actor.vel.y * delta;
+            actor.pos.z += actor.vel.z * delta;
+        }
+
+        if (actor.visible) {
+            const scale = math.Mat4.scale((TILE_WIDTH * PIXEL_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * PIXEL_HEIGHT * camera.z) / screenHeight, 5);
+            const trans = math.Mat4.translate(.{
+                .x = ((actor.pos.x * PIXEL_WIDTH * 2 * camera.z) - (camera.x * 4)) / screenWidth,
+                .y = ((actor.pos.y * PIXEL_HEIGHT * 2 * camera.z) - (camera.y * 4)) / -screenHeight,
+                .z = 0,
+            });
+
+            sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
+                .globalcolor = .{ 1, 1, 1, 1 },
+                .cropping = .{
+                    TILE_HEIGHT / @intToFloat(f32, tileset.height),
+                    TILE_WIDTH / @intToFloat(f32, tileset.width),
+                    @intToFloat(f32, actor.spr.x) / @intToFloat(f32, tileset.width),
+                    @intToFloat(f32, actor.spr.y) / @intToFloat(f32, tileset.height),
+                },
+            }));
+
+            sg.applyUniforms(.VS, shd.SLOT_vs_params, sg.asRange(shd.VsParams{ .mvp = math.Mat4.mul(trans, scale) }));
+
+            sg.draw(0, 6, 1);
+        }
     }
 
     if (comptime DEBUGMODE) {
@@ -246,7 +286,7 @@ export fn frame() void {
     delta = @floatCast(f32, stime.sec(stime.laptime(&last_time)));
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////f////////////////////
 
 const _keystruct = struct {
     up: bool = false,

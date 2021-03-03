@@ -1,0 +1,20 @@
+[
+	levels: {
+		[
+			tiles: {
+				[
+					x:  Position X      (unsigned int 32)
+					y:  Position Y      (unsigned int 32)
+					c:  Collidable?     (boolean)
+					sx: Tilesheet index (unsigned int 32)
+					sy: Tilesheet index (unsigned int 32)
+				], 
+				ETCETERA...
+			},
+
+			(WIP, DOESNT DO ANYTHING YET) actors: {
+			}
+		], 
+		ETCETERA...
+	}
+]
