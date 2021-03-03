@@ -10,7 +10,7 @@ const sdtx = @import("sokol").debugtext;
 const sa = @import("sokol").audio;
 
 const PNG = @import("fileformats").Png;
-const map = @import("maploader.zig");
+const map = @import("level.zig");
 const fs = @import("fs");
 
 const math = @import("math.zig");
@@ -22,6 +22,14 @@ const PIXEL_WIDTH = 2;
 const PIXEL_HEIGHT = 2;
 const TILE_WIDTH = 8;
 const TILE_HEIGHT = 8;
+
+pub const vec2 = struct {
+    x: f32, y: f32
+};
+var camera: vec2 = .{
+    .x = 0,
+    .y = 0,
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -169,9 +177,8 @@ export fn frame() void {
         sdtx.color1i(0xFFFFAE00);
         sdtx.print("hello again! =)\nwelcome to my little side-project!\n\n", .{});
 
-        sdtx.print("objects on screen: ", .{});
-        sdtx.color1i(0xFFAA67C7);
-        sdtx.print("{}\n", .{clevel.tiles.len});
+        sdtx.print("use the ARROW KEYS to MOVE the camera\n", .{});
+        sdtx.print("use Z to display collision boxes\n", .{});
     }
 
     sg.beginDefaultPass(pass_action, sapp.width(), sapp.height());
@@ -185,16 +192,38 @@ export fn frame() void {
     var TILE_ROWS = @intToFloat(f32, tileset.width) / TILE_WIDTH;
     var TILE_COLUMNS = @intToFloat(f32, tileset.height) / TILE_HEIGHT;
 
+    if (keys.down) {
+        camera.y += delta * 300;
+    }
+
+    if (keys.right) {
+        camera.x += delta * 300;
+    }
+
+    if (keys.up) {
+        camera.y -= delta * 300;
+    }
+
+    if (keys.left) {
+        camera.x -= delta * 300;
+    }
+
     for (clevel.tiles) |tile| {
         const scale = math.Mat4.scale((TILE_WIDTH * PIXEL_WIDTH) / screenWidth, (TILE_HEIGHT * PIXEL_HEIGHT) / screenHeight, 1);
         const trans = math.Mat4.translate(.{
-            .x = @intToFloat(f32, tile.x * PIXEL_WIDTH * 2) / screenWidth,
-            .y = @intToFloat(f32, tile.y * PIXEL_HEIGHT * 2) / -screenHeight,
+            .x = (@intToFloat(f32, tile.x * PIXEL_WIDTH * 2) - camera.x) / screenWidth,
+            .y = (@intToFloat(f32, tile.y * PIXEL_HEIGHT * 2) - camera.y) / -screenHeight,
             .z = 0,
         });
 
+        var alpha_kinda: f32 = 0.3;
+
+        if (keys.attack and tile.c) {
+            alpha_kinda = 0.7;
+        }
+
         sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
-            .globalcolor = .{ 0.3, 0.3, 0.3, 1 },
+            .globalcolor = .{ alpha_kinda, alpha_kinda, alpha_kinda, 1 },
             .cropping = .{
                 TILE_HEIGHT / @intToFloat(f32, tileset.height),
                 TILE_WIDTH / @intToFloat(f32, tileset.width),
