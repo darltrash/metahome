@@ -50,6 +50,12 @@ HOW TO EXPORT (DOESNT WORKS AS INTENDED, WIP):
   - build the maps with "buildmaps.sh"
   - build the release binary with "pack.sh"
   - now you should have a binary named "metahome" :)
+
+  if it shows up the same stupid error, run metahome this way:
+  LIBGL_ALWAYS_SOFTWARE=1 ./metahome
+
+  again, consider running this on a newer gpu because this method will slow down
+  things by a lot because it forces software rendering (which is normally slower than hardware rendering)
   
 
 DEVELOPMENT PHILOSOPHY:
