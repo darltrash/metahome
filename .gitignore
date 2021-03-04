@@ -3,4 +3,4 @@ metahome
 DATA.zip
 *.metahome.map
 zig-cache/
-
+*sync-conflict*
