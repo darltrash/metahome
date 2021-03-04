@@ -99,7 +99,6 @@ export fn init() void {
         .value = .{ .r = 0.08, .g = 0.08, .b = 0.11, .a = 1.0 }, // HELLO EIGENGRAU!
     };
 
-    std.debug.warn("GOT HERE", .{});
     tileset = Texture.fromPNGPath("sprites/test.png") catch {
         @panic("Unable to load Tileset.");
     };
@@ -170,13 +169,23 @@ export fn frame() void {
         sdtx.canvas(screenWidth * 0.5, screenHeight * 0.5);
         sdtx.origin(1, 1);
 
+        sdtx.color1i(0xFF16161D);
+        sdtx.print("m e t a h o m e : ---------------------------------\n\n", .{});
+
+        sdtx.print("hello again! =)\nwelcome to my little side-project!\n\n", .{});
+
+        sdtx.print("use the ARROW KEYS to move spriteboy\n", .{});
+        sdtx.print("use Z to display collision boxes\n", .{});
+
+        sdtx.pos(0, 0);
+        sdtx.moveY(-0.1);
         sdtx.color1i(0xFFAA67C7);
         sdtx.print("m e t a h o m e : ---------------------------------\n\n", .{});
 
         sdtx.color1i(0xFFFFAE00);
         sdtx.print("hello again! =)\nwelcome to my little side-project!\n\n", .{});
 
-        sdtx.print("use the ARROW KEYS to MOVE the camera\n", .{});
+        sdtx.print("use the ARROW KEYS to move spriteboy\n", .{});
         sdtx.print("use Z to display collision boxes\n", .{});
     }
 
@@ -202,8 +211,8 @@ export fn frame() void {
         sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
             .globalcolor = .{ 0.4, 0.5, 0.6, 1 },
             .cropping = .{
-                TILE_HEIGHT / @intToFloat(f32, tileset.height),
                 TILE_WIDTH / @intToFloat(f32, tileset.width),
+                TILE_HEIGHT / @intToFloat(f32, tileset.height),
                 @intToFloat(f32, tile.spr.x) / @intToFloat(f32, tileset.width),
                 @intToFloat(f32, tile.spr.y) / @intToFloat(f32, tileset.height),
             },
@@ -211,12 +220,12 @@ export fn frame() void {
 
         if (keys.attack and tile.collide) {
             sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
-                .globalcolor = .{ 0.7, 0.7, 0.7, 1 },
+                .globalcolor = .{ 0.6, 0.5, 0.8, 1 },
                 .cropping = .{
-                    TILE_HEIGHT / @intToFloat(f32, tileset.height),
                     TILE_WIDTH / @intToFloat(f32, tileset.width),
-                    (0.0 * @intToFloat(f32, TILE_HEIGHT)) / @intToFloat(f32, tileset.height),
-                    (1.0 * @intToFloat(f32, TILE_WIDTH)) / @intToFloat(f32, tileset.width),
+                    TILE_HEIGHT / @intToFloat(f32, tileset.height),
+                    0.0,
+                    0.0,
                 },
             }));
         }
@@ -241,23 +250,25 @@ export fn frame() void {
                         else => actor.anim = 0,
                     }
 
-                    actor.vel.x = 0;
-                    actor.vel.y = 0;
+                    actor.vel.x = math.lerp(actor.vel.x, 0, delta * 15);
+                    actor.vel.y = math.lerp(actor.vel.y, 0, delta * 15);
 
                     if (keys.down) {
-                        actor.vel.y += 50;
+                        actor.vel.y += 20;
                     }
 
                     if (keys.right) {
-                        actor.vel.x += 50;
+                        actor.vel.x += 20;
+                        actor.flip_x = false;
                     }
 
                     if (keys.up) {
-                        actor.vel.y -= 50;
+                        actor.vel.y -= 20;
                     }
 
                     if (keys.left) {
-                        actor.vel.x -= 50;
+                        actor.vel.x -= 20;
+                        actor.flip_x = true;
                     }
 
                     if (keys.down or keys.right or keys.up or keys.left) {
@@ -278,6 +289,8 @@ export fn frame() void {
         }
 
         if (actor.visible) {
+            var flip_x: f32 = if (actor.flip_x) -1 else 1;
+
             const scale = math.Mat4.scale((ACTOR_WIDTH * camera.z) / screenWidth, (ACTOR_HEIGHT * camera.z) / screenHeight, 5);
             const trans = math.Mat4.translate(.{
                 .x = ((actor.pos.x * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
@@ -288,10 +301,10 @@ export fn frame() void {
             sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
                 .globalcolor = .{ 1, 1, 1, 1 },
                 .cropping = .{
-                    ACTOR_HEIGHT / @intToFloat(f32, actorset.height),
-                    ACTOR_WIDTH / @intToFloat(f32, actorset.width),
-                    (@intToFloat(f32, actor.spr.x) * @intToFloat(f32, ACTOR_HEIGHT)) / @intToFloat(f32, actorset.height),
-                    (@intToFloat(f32, actor.spr.y) * @intToFloat(f32, ACTOR_WIDTH)) / @intToFloat(f32, actorset.width),
+                    @intToFloat(f32, ACTOR_WIDTH) / @intToFloat(f32, actorset.width),
+                    @intToFloat(f32, ACTOR_HEIGHT) / @intToFloat(f32, actorset.height),
+                    (@intToFloat(f32, actor.spr.x) * @intToFloat(f32, ACTOR_WIDTH)) / @intToFloat(f32, actorset.width),
+                    (@intToFloat(f32, actor.spr.y) * @intToFloat(f32, ACTOR_HEIGHT)) / @intToFloat(f32, actorset.height),
                 },
             }));
 
