@@ -37,6 +37,14 @@ HOW TO RUN:
   
   note: I have no idea of the outcome of this program or anything related to it and i am not responsible for that.
   i havent tested it on macOS nor Windows, so if you do, please leave me an issue or something :)
+
+DEVELOPMENT PHILOSOPHY:
+  i have been struggling with ADHD for a long while and i wanted to follow a programming philosophy 
+  i call "first trashcode, then refine", which means that this code is utter garbage and it's like 
+  that in purpose, so before anyone points something like "HEY U HAEV A CODEIGN PORBELM" out,
+  consider that this is nothing but a DEMO of what's coming up next (which will also be open source).
+
+  in resume: this code is garbage and i will fix it later, deal with it.
   
 LICENSE:
   Copyright (c) Nelson "darltrash" Lopez
