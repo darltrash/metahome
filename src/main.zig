@@ -18,12 +18,10 @@ const math = @import("math.zig");
 const shd = @import("shaders/main.zig");
 const errhandler = @import("errorhandler.zig");
 
-const PIXEL_WIDTH = 2;
-const PIXEL_HEIGHT = 2;
 const TILE_WIDTH = 8;
 const TILE_HEIGHT = 8;
 
-var camera: map.Vec3 = .{};
+var camera: map.Vec3 = .{ .z = 4 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -187,10 +185,10 @@ export fn frame() void {
     var TILE_COLUMNS = @intToFloat(f32, tileset.height) / TILE_HEIGHT;
 
     for (clevel.tiles) |tile| {
-        const scale = math.Mat4.scale((TILE_WIDTH * PIXEL_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * PIXEL_HEIGHT * camera.z) / screenHeight, 1);
+        const scale = math.Mat4.scale((TILE_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * camera.z) / screenHeight, 1);
         const trans = math.Mat4.translate(.{
-            .x = ((@intToFloat(f32, tile.x * PIXEL_WIDTH * 2) * camera.z) - (camera.x * 4)) / screenWidth,
-            .y = ((@intToFloat(f32, tile.y * PIXEL_HEIGHT * 2) * camera.z) - (camera.y * 4)) / -screenHeight,
+            .x = ((@intToFloat(f32, tile.x) * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
+            .y = ((@intToFloat(f32, tile.y) * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
             .z = 0,
         });
 
@@ -242,7 +240,6 @@ export fn frame() void {
 
                     camera.x = actor.pos.x;
                     camera.y = actor.pos.y;
-                    camera.z = 1;
                 },
 
                 else => {},
@@ -250,14 +247,13 @@ export fn frame() void {
 
             actor.pos.x += actor.vel.x * delta;
             actor.pos.y += actor.vel.y * delta;
-            actor.pos.z += actor.vel.z * delta;
         }
 
         if (actor.visible) {
-            const scale = math.Mat4.scale((TILE_WIDTH * PIXEL_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * PIXEL_HEIGHT * camera.z) / screenHeight, 5);
+            const scale = math.Mat4.scale((TILE_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * camera.z) / screenHeight, 5);
             const trans = math.Mat4.translate(.{
-                .x = ((actor.pos.x * PIXEL_WIDTH * 2 * camera.z) - (camera.x * 4)) / screenWidth,
-                .y = ((actor.pos.y * PIXEL_HEIGHT * 2 * camera.z) - (camera.y * 4)) / -screenHeight,
+                .x = ((actor.pos.x * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
+                .y = ((actor.pos.y * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
                 .z = 0,
             });
 
