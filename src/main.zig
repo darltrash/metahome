@@ -96,7 +96,7 @@ export fn init() void {
     sg.setup(.{ .context = sgapp.context() });
     pass_action.colors[0] = .{
         .action = .CLEAR,
-        .value = .{ .r = 22 / 255, .g = 22 / 255, .b = 29 / 255, .a = 1.0 }, // HELLO EIGENGRAU!
+        .value = .{ .r = 0.08, .g = 0.08, .b = 0.11, .a = 1.0 }, // HELLO EIGENGRAU!
     };
 
     std.debug.warn("GOT HERE", .{});
@@ -200,7 +200,7 @@ export fn frame() void {
         });
 
         sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
-            .globalcolor = .{ 0.3, 0.3, 0.3, 1 },
+            .globalcolor = .{ 0.4, 0.5, 0.6, 1 },
             .cropping = .{
                 TILE_HEIGHT / @intToFloat(f32, tileset.height),
                 TILE_WIDTH / @intToFloat(f32, tileset.width),
