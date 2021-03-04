@@ -30,8 +30,10 @@ HOW TO RUN:
     - zig master 0.8.0
     - a little bit of patience
   
-  first clone this repo, then build it with "zig build run"
-  and that should be it, really.
+  - first clone this repo
+  - build the maps with "buildmaps.sh"
+  - build the debug binary with "zig build run"
+  - uhh, profit, i guess!
   
   If it shows up some weird error message like "hEY FAiLeD to INitIalizE Gl cOntEXt XD"
   then, you may need to try this out in a newer GPU or use ./run.sh and sacrifice performance.
@@ -39,6 +41,16 @@ HOW TO RUN:
   note: I have no idea of the outcome of this program or anything related to it and i am not responsible for that.
   i havent tested it on macOS nor Windows, so if you do, please leave me an issue or something :)
 
+
+HOW TO EXPORT (DOESNT WORKS AS INTENDED, WIP):
+  you will need:
+    - everything else in the HOW TO RUN section
+
+  - first clone this repo
+  - build the maps with "buildmaps.sh"
+  - build the release binary with "pack.sh"
+  - now you should have a binary named "metahome" :)
+  
 
 DEVELOPMENT PHILOSOPHY:
   i have been struggling with ADHD for a long while and i wanted to follow a programming philosophy 
