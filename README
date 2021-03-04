@@ -9,6 +9,7 @@ this game is still nothing but a tech demo right now, but the engine currently s
   - basic font rendering (thanks sokol)
 
 things i need to add:
+  - collision handler (and grid based movement!)
   - audio thingies
   - tracker music format support
   - entity handler
@@ -25,7 +26,7 @@ things i may add:
 HOW TO RUN:
   you will need: 
     - the xorg development libraries 
-    - preferabily a GL3+ compatible GPU
+    - preferabily a gl3+ compatible gpu
     - zig master 0.8.0
     - a little bit of patience
   
@@ -38,6 +39,7 @@ HOW TO RUN:
   note: I have no idea of the outcome of this program or anything related to it and i am not responsible for that.
   i havent tested it on macOS nor Windows, so if you do, please leave me an issue or something :)
 
+
 DEVELOPMENT PHILOSOPHY:
   i have been struggling with ADHD for a long while and i wanted to follow a programming philosophy 
   i call "first trashcode, then refine", which means that this code is utter garbage and it's like 
@@ -45,7 +47,8 @@ DEVELOPMENT PHILOSOPHY:
   consider that this is nothing but a DEMO of what's coming up next (which will also be open source).
 
   in resume: this code is garbage and i will fix it later, deal with it.
+
   
 LICENSE:
-  Copyright (c) Nelson "darltrash" Lopez
+  Copyright (c) Nelson "darltrash" Lopez 2021
   Check LICENSE and ASSETSLICENSE.
