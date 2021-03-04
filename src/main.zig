@@ -21,6 +21,9 @@ const errhandler = @import("errorhandler.zig");
 const TILE_WIDTH = 8;
 const TILE_HEIGHT = 8;
 
+const ACTOR_WIDTH = 16;
+const ACTOR_HEIGHT = 16;
+
 var camera: map.Vec3 = .{ .z = 3 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,6 +83,7 @@ var cworld: map.World = undefined;
 var clevel: map.Level = undefined;
 
 var tileset: Texture = undefined;
+var actorset: Texture = undefined;
 
 const mapdata = @embedFile("../maps/test.metahome.map");
 
@@ -92,14 +96,17 @@ export fn init() void {
     sg.setup(.{ .context = sgapp.context() });
     pass_action.colors[0] = .{
         .action = .CLEAR,
-        .value = .{ .r = 0, .g = 0, .b = 0, .a = 1.0 }, // Bye eigengrau!
+        .value = .{ .r = 22 / 255, .g = 22 / 255, .b = 29 / 255, .a = 1.0 }, // HELLO EIGENGRAU!
     };
 
     std.debug.warn("GOT HERE", .{});
     tileset = Texture.fromPNGPath("sprites/test.png") catch {
         @panic("Unable to load Tileset.");
     };
-    bind.fs_images[shd.SLOT_tex] = tileset.sktexture;
+
+    actorset = Texture.fromPNGPath("sprites/actor.png") catch {
+        @panic("Unable to load actor Tileset.");
+    };
 
     const QuadVertices = [4]Vertex{
         .{ .x = 2, .y = 0, .u = 6553, .v = 6553 }, .{ .x = 2, .y = 2, .u = 6553, .v = 0 },
@@ -219,14 +226,23 @@ export fn frame() void {
         sg.draw(0, 6, 1);
     }
 
+    bind.fs_images[shd.SLOT_tex] = actorset.sktexture;
+    sg.applyPipeline(pip);
+    sg.applyBindings(bind);
+
     for (clevel.actors) |*actor| {
         if (actor.process) {
             switch (actor.kind) {
                 .Player => {
+                    switch (@floatToInt(u32, actor.anim)) {
+                        0, 2 => actor.spr.x = 0,
+                        1 => actor.spr.x = 1,
+                        3 => actor.spr.x = 2,
+                        else => actor.anim = 0,
+                    }
+
                     actor.vel.x = 0;
                     actor.vel.y = 0;
-                    actor.spr.x = 3;
-                    actor.spr.y = 4;
 
                     if (keys.down) {
                         actor.vel.y += 50;
@@ -244,6 +260,12 @@ export fn frame() void {
                         actor.vel.x -= 50;
                     }
 
+                    if (keys.down or keys.right or keys.up or keys.left) {
+                        actor.anim += delta * 5;
+                    } else {
+                        actor.anim = 0;
+                    }
+
                     camera.x = actor.pos.x;
                     camera.y = actor.pos.y;
                 },
@@ -256,7 +278,7 @@ export fn frame() void {
         }
 
         if (actor.visible) {
-            const scale = math.Mat4.scale((TILE_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * camera.z) / screenHeight, 5);
+            const scale = math.Mat4.scale((ACTOR_WIDTH * camera.z) / screenWidth, (ACTOR_HEIGHT * camera.z) / screenHeight, 5);
             const trans = math.Mat4.translate(.{
                 .x = ((actor.pos.x * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
                 .y = ((actor.pos.y * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
@@ -266,10 +288,10 @@ export fn frame() void {
             sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
                 .globalcolor = .{ 1, 1, 1, 1 },
                 .cropping = .{
-                    TILE_HEIGHT / @intToFloat(f32, tileset.height),
-                    TILE_WIDTH / @intToFloat(f32, tileset.width),
-                    (@intToFloat(f32, actor.spr.x) * @intToFloat(f32, TILE_HEIGHT)) / @intToFloat(f32, tileset.height),
-                    (@intToFloat(f32, actor.spr.y) * @intToFloat(f32, TILE_WIDTH)) / @intToFloat(f32, tileset.width),
+                    ACTOR_HEIGHT / @intToFloat(f32, actorset.height),
+                    ACTOR_WIDTH / @intToFloat(f32, actorset.width),
+                    (@intToFloat(f32, actor.spr.x) * @intToFloat(f32, ACTOR_HEIGHT)) / @intToFloat(f32, actorset.height),
+                    (@intToFloat(f32, actor.spr.y) * @intToFloat(f32, ACTOR_WIDTH)) / @intToFloat(f32, actorset.width),
                 },
             }));
 

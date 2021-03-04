@@ -19,9 +19,14 @@ pub const Actor = struct {
     pos: Vec3 = .{ .x = 0, .y = 0, .z = 0 },
     vel: Vec3 = .{ .x = 0, .y = 0, .z = 0 },
     spr: Sprite = .{ .x = 0, .y = 0 },
+    anim: f32 = 0,
 
     process: bool = true,
     visible: bool = true,
+
+    flip_x: bool = false,
+    flip_y: bool = false,
+
     kind: ActorKinds = undefined,
 };
 
