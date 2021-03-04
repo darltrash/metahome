@@ -21,7 +21,7 @@ const errhandler = @import("errorhandler.zig");
 const TILE_WIDTH = 8;
 const TILE_HEIGHT = 8;
 
-var camera: map.Vec3 = .{ .z = 4 };
+var camera: map.Vec3 = .{ .z = 3 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -192,14 +192,8 @@ export fn frame() void {
             .z = 0,
         });
 
-        var alpha_kinda: f32 = 0.3;
-
-        if (keys.attack and tile.collide) {
-            alpha_kinda = 0.7;
-        }
-
         sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
-            .globalcolor = .{ alpha_kinda, alpha_kinda, alpha_kinda, 1 },
+            .globalcolor = .{ 0.3, 0.3, 0.3, 1 },
             .cropping = .{
                 TILE_HEIGHT / @intToFloat(f32, tileset.height),
                 TILE_WIDTH / @intToFloat(f32, tileset.width),
@@ -207,6 +201,18 @@ export fn frame() void {
                 @intToFloat(f32, tile.spr.y) / @intToFloat(f32, tileset.height),
             },
         }));
+
+        if (keys.attack and tile.collide) {
+            sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
+                .globalcolor = .{ 0.7, 0.7, 0.7, 1 },
+                .cropping = .{
+                    TILE_HEIGHT / @intToFloat(f32, tileset.height),
+                    TILE_WIDTH / @intToFloat(f32, tileset.width),
+                    (0.0 * @intToFloat(f32, TILE_HEIGHT)) / @intToFloat(f32, tileset.height),
+                    (1.0 * @intToFloat(f32, TILE_WIDTH)) / @intToFloat(f32, tileset.width),
+                },
+            }));
+        }
 
         sg.applyUniforms(.VS, shd.SLOT_vs_params, sg.asRange(shd.VsParams{ .mvp = math.Mat4.mul(trans, scale) }));
 
@@ -219,8 +225,8 @@ export fn frame() void {
                 .Player => {
                     actor.vel.x = 0;
                     actor.vel.y = 0;
-                    actor.spr.x = 4;
-                    actor.spr.y = 5;
+                    actor.spr.x = 3;
+                    actor.spr.y = 4;
 
                     if (keys.down) {
                         actor.vel.y += 50;
@@ -262,8 +268,8 @@ export fn frame() void {
                 .cropping = .{
                     TILE_HEIGHT / @intToFloat(f32, tileset.height),
                     TILE_WIDTH / @intToFloat(f32, tileset.width),
-                    @intToFloat(f32, actor.spr.x) / @intToFloat(f32, tileset.width),
-                    @intToFloat(f32, actor.spr.y) / @intToFloat(f32, tileset.height),
+                    (@intToFloat(f32, actor.spr.x) * @intToFloat(f32, TILE_HEIGHT)) / @intToFloat(f32, tileset.height),
+                    (@intToFloat(f32, actor.spr.y) * @intToFloat(f32, TILE_WIDTH)) / @intToFloat(f32, tileset.width),
                 },
             }));
 
