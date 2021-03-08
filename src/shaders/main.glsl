@@ -37,4 +37,3 @@ void main() {
 #pragma sokol @end
 
 #pragma sokol @program main vs fs
-

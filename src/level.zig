@@ -1,8 +1,10 @@
 const msgpack = @import("fileformats/msgpack.zig");
 const std = @import("std");
+const main = @import("main.zig");
+const math = @import("math.zig");
 
 pub const ActorKinds = enum(u4) {
-    Player, Enemy
+    Player, Puppet, Enemy
 };
 
 pub const Vec3 = struct {
@@ -28,6 +30,51 @@ pub const Actor = struct {
     flip_y: bool = false,
 
     kind: ActorKinds = undefined,
+
+    pub fn processPlayer(actor: *Actor, delta: f32) void {
+        var keys = main.getKeys();
+        switch (@floatToInt(u32, actor.anim)) {
+            0, 2 => actor.spr.x = 0,
+            1 => actor.spr.x = 1,
+            3 => actor.spr.x = 2,
+            else => actor.anim = 0,
+        }
+
+        actor.vel.x = math.lerp(actor.vel.x, 0, delta * 15);
+        actor.vel.y = math.lerp(actor.vel.y, 0, delta * 15);
+
+        if (keys.down) {
+            actor.vel.y += 20;
+        }
+
+        if (keys.right) {
+            actor.vel.x += 20;
+            actor.flip_x = false;
+        }
+
+        if (keys.up) {
+            actor.vel.y -= 20;
+        }
+
+        if (keys.left) {
+            actor.vel.x -= 20;
+            actor.flip_x = true;
+        }
+
+        if ((keys.down and !keys.up) or
+            (keys.right and !keys.left) or
+            (keys.up and !keys.down) or
+            (keys.left and !keys.right))
+        {
+            actor.anim += delta * 5; // Fun fact: spriteboy's animation is around 172 BPM
+        } else {
+            actor.anim = 0;
+        }
+
+        var camera = main.getCamera();
+        camera.x = actor.pos.x;
+        camera.y = actor.pos.y;
+    }
 };
 
 pub const Tile = struct {

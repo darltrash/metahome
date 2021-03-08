@@ -27,7 +27,6 @@ for level in data["levels"]:
         if layer["__type"] == "IntGrid":
             for intgrid in layer["intGrid"]:
                 collisionHash[intgrid["coordId"]] = True
-                print(intgrid["coordId"])
         elif layer["__type"] == "Tiles":
             gridsize = layer["__gridSize"]
             for tile in layer["gridTiles"]:

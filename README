@@ -25,9 +25,12 @@ things i may add:
 
 HOW TO RUN:
   you will need: 
-    - the xorg development libraries 
+    - [LINUX*] the xorg development libraries
+    - [LINUX*] the alsa development libraries
     - preferabily a gl3+ compatible gpu
     - zig master 0.8.0
+    - python 3 (i hate this dependency)
+    - the python msgpack and json libraries (i also hate these, screw python)
     - a little bit of patience
   
   - first clone this repo
@@ -37,14 +40,16 @@ HOW TO RUN:
   
   If it shows up some weird error message like "hEY FAiLeD to INitIalizE Gl cOntEXt XD"
   then, you may need to try this out in a newer GPU or use ./run.sh and sacrifice performance.
+
+  note: with "LINUX*" i refeer to the linux kernel and possibly some *BSD kernels like freebsd
   
   note: I have no idea of the outcome of this program or anything related to it and i am not responsible for that.
-  i havent tested it on macOS nor Windows, so if you do, please leave me an issue or something :)
+  i havent tested it on anything but linux, so if you do, please leave me an issue or something :)
 
 
 HOW TO EXPORT (DOESNT WORKS AS INTENDED, WIP):
   you will need:
-    - everything else in the HOW TO RUN section
+    - everything stated in the HOW TO RUN section
 
   - first clone this repo
   - build the maps with "buildmaps.sh"

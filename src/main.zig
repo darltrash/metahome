@@ -25,6 +25,9 @@ const ACTOR_WIDTH = 16;
 const ACTOR_HEIGHT = 16;
 
 var camera: map.Vec3 = .{ .z = 3 };
+pub fn getCamera() *map.Vec3 {
+    return &camera;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -65,7 +68,7 @@ pub const Texture = struct {
     }
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 const Vertex = packed struct {
     x: f32 = 0, y: f32 = 0, z: f32 = 0, color: u32 = 0xFFFFFFFF, u: i16, v: i16
@@ -161,6 +164,10 @@ var screenHeight: f32 = 0;
 var delta: f32 = 0;
 var last_time: u64 = 0;
 
+pub fn i2f(int: anytype) callconv(.Inline) f32 { // I added this function for pure convenience
+    return @intToFloat(f32, int); // It shouldnt affect runtime performance
+}
+
 export fn frame() void {
     screenWidth = sapp.widthf();
     screenHeight = sapp.heightf();
@@ -169,16 +176,6 @@ export fn frame() void {
         sdtx.canvas(screenWidth * 0.5, screenHeight * 0.5);
         sdtx.origin(1, 1);
 
-        sdtx.color1i(0xFF16161D);
-        sdtx.print("m e t a h o m e : ---------------------------------\n\n", .{});
-
-        sdtx.print("hello again! =)\nwelcome to my little side-project!\n\n", .{});
-
-        sdtx.print("use the ARROW KEYS to move spriteboy\n", .{});
-        sdtx.print("use Z to display collision boxes\n", .{});
-
-        sdtx.pos(0, 0);
-        sdtx.moveY(-0.1);
         sdtx.color1i(0xFFAA67C7);
         sdtx.print("m e t a h o m e : ---------------------------------\n\n", .{});
 
@@ -197,24 +194,24 @@ export fn frame() void {
     sg.applyPipeline(pip);
     sg.applyBindings(bind);
 
-    var TILE_ROWS = @intToFloat(f32, tileset.width) / TILE_WIDTH;
-    var TILE_COLUMNS = @intToFloat(f32, tileset.height) / TILE_HEIGHT;
+    var TILE_ROWS = i2f(tileset.width) / TILE_WIDTH;
+    var TILE_COLUMNS = i2f(tileset.height) / TILE_HEIGHT;
 
     for (clevel.tiles) |tile| {
         const scale = math.Mat4.scale((TILE_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * camera.z) / screenHeight, 1);
         const trans = math.Mat4.translate(.{
-            .x = ((@intToFloat(f32, tile.x) * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
-            .y = ((@intToFloat(f32, tile.y) * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
+            .x = ((i2f(tile.x) * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
+            .y = ((i2f(tile.y) * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
             .z = 0,
         });
 
         sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
             .globalcolor = .{ 0.4, 0.5, 0.6, 1 },
             .cropping = .{
-                TILE_WIDTH / @intToFloat(f32, tileset.width),
-                TILE_HEIGHT / @intToFloat(f32, tileset.height),
-                @intToFloat(f32, tile.spr.x) / @intToFloat(f32, tileset.width),
-                @intToFloat(f32, tile.spr.y) / @intToFloat(f32, tileset.height),
+                TILE_WIDTH / i2f(tileset.width),
+                TILE_HEIGHT / i2f(tileset.height),
+                i2f(tile.spr.x) / i2f(tileset.width),
+                i2f(tile.spr.y) / i2f(tileset.height),
             },
         }));
 
@@ -222,8 +219,8 @@ export fn frame() void {
             sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
                 .globalcolor = .{ 0.6, 0.5, 0.8, 1 },
                 .cropping = .{
-                    TILE_WIDTH / @intToFloat(f32, tileset.width),
-                    TILE_HEIGHT / @intToFloat(f32, tileset.height),
+                    TILE_WIDTH / i2f(tileset.width),
+                    TILE_HEIGHT / i2f(tileset.height),
                     0.0,
                     0.0,
                 },
@@ -242,44 +239,7 @@ export fn frame() void {
     for (clevel.actors) |*actor| {
         if (actor.process) {
             switch (actor.kind) {
-                .Player => {
-                    switch (@floatToInt(u32, actor.anim)) {
-                        0, 2 => actor.spr.x = 0,
-                        1 => actor.spr.x = 1,
-                        3 => actor.spr.x = 2,
-                        else => actor.anim = 0,
-                    }
-
-                    actor.vel.x = math.lerp(actor.vel.x, 0, delta * 15);
-                    actor.vel.y = math.lerp(actor.vel.y, 0, delta * 15);
-
-                    if (keys.down) {
-                        actor.vel.y += 20;
-                    }
-
-                    if (keys.right) {
-                        actor.vel.x += 20;
-                        actor.flip_x = false;
-                    }
-
-                    if (keys.up) {
-                        actor.vel.y -= 20;
-                    }
-
-                    if (keys.left) {
-                        actor.vel.x -= 20;
-                        actor.flip_x = true;
-                    }
-
-                    if (keys.down or keys.right or keys.up or keys.left) {
-                        actor.anim += delta * 5;
-                    } else {
-                        actor.anim = 0;
-                    }
-
-                    camera.x = actor.pos.x;
-                    camera.y = actor.pos.y;
-                },
+                .Player => actor.processPlayer(delta),
 
                 else => {},
             }
@@ -301,10 +261,10 @@ export fn frame() void {
             sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
                 .globalcolor = .{ 1, 1, 1, 1 },
                 .cropping = .{
-                    @intToFloat(f32, ACTOR_WIDTH) / @intToFloat(f32, actorset.width),
-                    @intToFloat(f32, ACTOR_HEIGHT) / @intToFloat(f32, actorset.height),
-                    (@intToFloat(f32, actor.spr.x) * @intToFloat(f32, ACTOR_WIDTH)) / @intToFloat(f32, actorset.width),
-                    (@intToFloat(f32, actor.spr.y) * @intToFloat(f32, ACTOR_HEIGHT)) / @intToFloat(f32, actorset.height),
+                    i2f(ACTOR_WIDTH) / i2f(actorset.width),
+                    i2f(ACTOR_HEIGHT) / i2f(actorset.height),
+                    (i2f(actor.spr.x) * i2f(ACTOR_WIDTH)) / i2f(actorset.width),
+                    (i2f(actor.spr.y) * i2f(ACTOR_HEIGHT)) / i2f(actorset.height),
                 },
             }));
 
@@ -385,7 +345,7 @@ export fn input(ev: ?*const sapp.Event) void {
 }
 
 pub fn getKeys() *_keystruct {
-    return &key;
+    return &keys;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
