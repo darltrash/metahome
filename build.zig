@@ -49,7 +49,7 @@ pub fn buildSokol(b: *bld.Builder, comptime prefix_path: []const u8) *bld.LibExe
 }
 
 pub fn build(b: *bld.Builder) void {
-    const e = b.addExecutable("metahome", "src/main.zig");
+    const e = b.addExecutable("metahome", "src/test_kbrd.zig");
     e.linkLibrary(buildSokol(b, ""));
     e.addPackagePath("sokol", "src/sokol/sokol.zig");
 
