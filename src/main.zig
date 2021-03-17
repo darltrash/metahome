@@ -9,7 +9,16 @@ const sgapp = @import("sokol").app_gfx_glue;
 const sdtx = @import("sokol").debugtext;
 const sa = @import("sokol").audio;
 
-const PNG = @import("fileformats").Png;
+const formats = @import("fileformats");
+const PNG = formats.Png;
+const modplug = formats.modplug;
+const _audiostate = struct {
+    mpf_valid: bool = undefined,
+    mpf: *modplug.ModPlugFile = undefined,
+    int_buf: [16 * 1024]i32 = undefined,
+};
+var audiostate = _audiostate{};
+
 const map = @import("level.zig");
 const fs = @import("fs");
 
@@ -70,9 +79,7 @@ pub const Texture = struct {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-const Vertex = packed struct {
-    x: f32 = 0, y: f32 = 0, z: f32 = 0, color: u32 = 0xFFFFFFFF, u: i16, v: i16
-};
+const Vertex = packed struct { x: f32 = 0, y: f32 = 0, z: f32 = 0, color: u32 = 0xFFFFFFFF, u: i16, v: i16 };
 
 var pass_action: sg.PassAction = .{};
 var pip: sg.Pipeline = .{};
@@ -90,10 +97,52 @@ var actorset: Texture = undefined;
 
 const mapdata = @embedFile("../maps/test.metahome.map");
 
-export fn audio(buffer: [*c]f32, frames: i32, channels: i32) void {}
+// Ported from https://github.com/floooh/sokol-samples/blob/f0d16874d6443a813c16a730be6eb9d29ebd0616/sapp/modplay-sapp.c#L34
+fn readModplugSamples(buffer: [*c]f32, num_samples: i32) void {
+    //@assert(num_samples <= 16 * 1024);
+    if (audiostate.mpf_valid) {
+        var res = modplug.ModPlug_Read(audiostate.mpf, &audiostate.int_buf, @intCast(c_int, num_samples));
+        var samples_in_buffer = @divFloor(res, @sizeOf(c_int));
+        var i: usize = 0;
+        while (i < samples_in_buffer) {
+            buffer[i] = @intToFloat(f32, audiostate.int_buf[i]) / @intToFloat(f32, 0x7fffffff);
+            i += 1;
+        }
+
+        while (i < num_samples) {
+            buffer[i] = 0;
+            i += 1;
+        }
+    } else { // COMPLETE SILENCE
+        var i: usize = 0;
+        while (i < num_samples) {
+            buffer[i] = 0;
+            i += 1;
+        }
+    }
+}
+export fn audio(buffer: [*c]f32, frames: i32, channels: i32) void {
+    readModplugSamples(buffer, frames * channels);
+}
+
+const AUDIO = @embedFile("../music/Untitled.xm");
 
 export fn init() void {
-    sa.setup(.{ .stream_cb = audio });
+    sa.setup(.{ .stream_cb = audio, .num_channels = 2 });
+    var mps: modplug.ModPlug_Settings = undefined;
+    modplug.ModPlug_GetSettings(&mps);
+    mps.mChannels = sa.channels();
+    mps.mBits = 32;
+    mps.mFrequency = sa.sampleRate();
+    mps.mResamplingMode = modplug.MODPLUG_RESAMPLE_LINEAR;
+    mps.mMaxMixChannels = 64;
+    mps.mLoopCount = -1;
+    mps.mFlags = modplug.MODPLUG_ENABLE_OVERSAMPLING;
+    modplug.ModPlug_SetSettings(&mps);
+
+    audiostate.mpf = modplug.ModPlug_Load(AUDIO, 512180);
+    audiostate.mpf_valid = (audiostate.mpf != undefined);
+
     fs.init();
 
     sg.setup(.{ .context = sgapp.context() });

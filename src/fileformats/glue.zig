@@ -25,6 +25,9 @@ const fs = @import("../filesystem/handler.zig");
 const c = @cImport({
     @cInclude("stb_image.h");
 });
+pub const modplug = @cImport({
+    @cInclude("modplug.h");
+});
 
 pub const Png = struct {
     width: u32,

@@ -49,11 +49,12 @@ pub fn buildSokol(b: *bld.Builder, comptime prefix_path: []const u8) *bld.LibExe
 }
 
 pub fn build(b: *bld.Builder) void {
-    const e = b.addExecutable("metahome", "src/test_kbrd.zig");
+    const e = b.addExecutable("metahome", "src/main.zig");
     e.linkLibrary(buildSokol(b, ""));
     e.addPackagePath("sokol", "src/sokol/sokol.zig");
 
     //e.linkSystemLibrary("c");
+    e.linkSystemLibrary("modplug"); // This is for FANCY AUDIO TECHNOLOGY(tm)
 
     e.addIncludeDir("src/fileformats/");
     e.addCSourceFile("src/fileformats/stb_image_impl.c", &[_][]const u8{"-std=c99"});
