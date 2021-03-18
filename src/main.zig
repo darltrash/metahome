@@ -128,7 +128,7 @@ export fn audio(buffer: [*c]f32, frames: i32, channels: i32) void {
 const AUDIO = @embedFile("../music/Untitled.xm");
 
 export fn init() void {
-    sa.setup(.{ .stream_cb = audio, .num_channels = 2 });
+    sa.setup(.{ .stream_cb = audio, .num_channels = 2});
     var mps: modplug.ModPlug_Settings = undefined;
     modplug.ModPlug_GetSettings(&mps);
     mps.mChannels = sa.channels();
@@ -140,7 +140,7 @@ export fn init() void {
     mps.mFlags = modplug.MODPLUG_ENABLE_OVERSAMPLING;
     modplug.ModPlug_SetSettings(&mps);
 
-    audiostate.mpf = modplug.ModPlug_Load(AUDIO, 512180);
+    audiostate.mpf = modplug.ModPlug_Load(AUDIO, 512180) orelse undefined;
     audiostate.mpf_valid = (audiostate.mpf != undefined);
 
     fs.init();
