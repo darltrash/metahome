@@ -11,13 +11,6 @@ const sa = @import("sokol").audio;
 
 const formats = @import("fileformats");
 const PNG = formats.Png;
-const modplug = formats.modplug;
-const _audiostate = struct {
-    mpf_valid: bool = undefined,
-    mpf: *modplug.ModPlugFile = undefined,
-    int_buf: [16 * 1024]i32 = undefined,
-};
-var audiostate = _audiostate{};
 
 const map = @import("level.zig");
 const fs = @import("fs");
@@ -97,51 +90,10 @@ var actorset: Texture = undefined;
 
 const mapdata = @embedFile("../maps/test.metahome.map");
 
-// Ported from https://github.com/floooh/sokol-samples/blob/f0d16874d6443a813c16a730be6eb9d29ebd0616/sapp/modplay-sapp.c#L34
-fn readModplugSamples(buffer: [*c]f32, num_samples: i32) void {
-    //@assert(num_samples <= 16 * 1024);
-    if (audiostate.mpf_valid) {
-        var res = modplug.ModPlug_Read(audiostate.mpf, &audiostate.int_buf, @intCast(c_int, num_samples));
-        var samples_in_buffer = @divFloor(res, @sizeOf(c_int));
-        var i: usize = 0;
-        while (i < samples_in_buffer) {
-            buffer[i] = @intToFloat(f32, audiostate.int_buf[i]) / @intToFloat(f32, 0x7fffffff);
-            i += 1;
-        }
-
-        while (i < num_samples) {
-            buffer[i] = 0;
-            i += 1;
-        }
-    } else { // COMPLETE SILENCE
-        var i: usize = 0;
-        while (i < num_samples) {
-            buffer[i] = 0;
-            i += 1;
-        }
-    }
-}
-export fn audio(buffer: [*c]f32, frames: i32, channels: i32) void {
-    readModplugSamples(buffer, frames * channels);
-}
-
-const AUDIO = @embedFile("../music/Untitled.xm");
+export fn audio(a: [*c]f32, b: i32, c: i32) void {}
 
 export fn init() void {
-    sa.setup(.{ .stream_cb = audio, .num_channels = 2});
-    var mps: modplug.ModPlug_Settings = undefined;
-    modplug.ModPlug_GetSettings(&mps);
-    mps.mChannels = sa.channels();
-    mps.mBits = 32;
-    mps.mFrequency = sa.sampleRate();
-    mps.mResamplingMode = modplug.MODPLUG_RESAMPLE_LINEAR;
-    mps.mMaxMixChannels = 64;
-    mps.mLoopCount = -1;
-    mps.mFlags = modplug.MODPLUG_ENABLE_OVERSAMPLING;
-    modplug.ModPlug_SetSettings(&mps);
-
-    audiostate.mpf = modplug.ModPlug_Load(AUDIO, 512180) orelse undefined;
-    audiostate.mpf_valid = (audiostate.mpf != undefined);
+    sa.setup(.{ .stream_cb = audio, .num_channels = 2 });
 
     fs.init();
 
@@ -174,7 +126,7 @@ export fn init() void {
     var pip_desc: sg.PipelineDesc = .{
         .shader = sg.makeShader(shd.mainShaderDesc(sg.queryBackend())),
         .index_type = .UINT16,
-        .cull_mode = .FRONT,
+        .cull_mode = .NONE,
         .depth = .{
             .compare = .LESS_EQUAL,
             .write_enabled = true,
@@ -299,11 +251,15 @@ export fn frame() void {
 
         if (actor.visible) {
             var flip_x: f32 = if (actor.flip_x) -1 else 1;
+            var flip_y: f32 = if (actor.flip_y) -1 else 1;
 
-            const scale = math.Mat4.scale((ACTOR_WIDTH * camera.z) / screenWidth, (ACTOR_HEIGHT * camera.z) / screenHeight, 5);
+            var offs_x: f32 = if (actor.flip_x) i2f(ACTOR_WIDTH) else 0;
+            var offs_y: f32 = if (actor.flip_y) i2f(ACTOR_HEIGHT) else 0;
+
+            const scale = math.Mat4.scale((ACTOR_WIDTH * camera.z * flip_x) / screenWidth, (ACTOR_HEIGHT * camera.z * flip_y) / screenHeight, 5);
             const trans = math.Mat4.translate(.{
-                .x = ((actor.pos.x * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
-                .y = ((actor.pos.y * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
+                .x = (((actor.pos.x + offs_x) * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
+                .y = (((actor.pos.y + offs_y) * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
                 .z = 0,
             });
 
