@@ -34,7 +34,7 @@ HOW TO RUN:
     - a little bit of patience
   
   - first clone this repo
-  - build the maps with "buildmaps.sh"
+  - build the maps with "compile.py"
   - build the debug binary with "zig build run"
   - uhh, profit, i guess!
   
@@ -52,7 +52,6 @@ HOW TO EXPORT (DOESNT WORKS AS INTENDED, WIP):
     - everything stated in the HOW TO RUN section
 
   - first clone this repo
-  - build the maps with "buildmaps.sh"
   - build the release binary with "pack.sh"
   - now you should have a binary named "metahome" :)
 

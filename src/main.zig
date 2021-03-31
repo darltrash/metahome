@@ -75,7 +75,8 @@ pub const Texture = struct {
 const Vertex = packed struct { x: f32 = 0, y: f32 = 0, z: f32 = 0, color: u32 = 0xFFFFFFFF, u: i16, v: i16 };
 
 var pass_action: sg.PassAction = .{};
-var pip: sg.Pipeline = .{};
+var tile_pip: sg.Pipeline = .{};
+var actor_pip: sg.Pipeline = .{};
 var bind: sg.Bindings = .{};
 
 var GPA = std.heap.GeneralPurposeAllocator(.{}){};
@@ -88,7 +89,7 @@ var clevel: map.Level = undefined;
 var tileset: Texture = undefined;
 var actorset: Texture = undefined;
 
-const mapdata = @embedFile("../maps/test.metahome.map");
+const mapdata = @embedFile("../maps/test.mh.map");
 
 export fn audio(a: [*c]f32, b: i32, c: i32) void {}
 
@@ -123,7 +124,33 @@ export fn init() void {
         .data = sg.asRange(QuadIndices),
     });
 
-    var pip_desc: sg.PipelineDesc = .{
+    /////////////////////////////////////////////////////////////////////////
+
+    var tile_pip_desc: sg.PipelineDesc = .{
+        .shader = sg.makeShader(shd.mainShaderDesc(sg.queryBackend())),
+        .index_type = .UINT16,
+        .cull_mode = .FRONT,
+        .depth = .{
+            .compare = .LESS_EQUAL,
+            .write_enabled = true,
+        },
+    };
+    tile_pip_desc.colors[0].blend = .{
+        .enabled = true,
+        .src_factor_rgb = .SRC_ALPHA,
+        .dst_factor_rgb = .ONE_MINUS_SRC_ALPHA,
+        .src_factor_alpha = .SRC_ALPHA,
+        .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
+    };
+
+    tile_pip_desc.layout.attrs[shd.ATTR_vs_pos].format = .FLOAT3;
+    tile_pip_desc.layout.attrs[shd.ATTR_vs_color0].format = .UBYTE4N;
+    tile_pip_desc.layout.attrs[shd.ATTR_vs_texcoord0].format = .SHORT2N;
+    tile_pip = sg.makePipeline(tile_pip_desc);
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    var actor_pip_desc: sg.PipelineDesc = .{
         .shader = sg.makeShader(shd.mainShaderDesc(sg.queryBackend())),
         .index_type = .UINT16,
         .cull_mode = .NONE,
@@ -132,7 +159,7 @@ export fn init() void {
             .write_enabled = true,
         },
     };
-    pip_desc.colors[0].blend = .{
+    actor_pip_desc.colors[0].blend = .{
         .enabled = true,
         .src_factor_rgb = .SRC_ALPHA,
         .dst_factor_rgb = .ONE_MINUS_SRC_ALPHA,
@@ -140,10 +167,13 @@ export fn init() void {
         .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
     };
 
-    pip_desc.layout.attrs[shd.ATTR_vs_pos].format = .FLOAT3;
-    pip_desc.layout.attrs[shd.ATTR_vs_color0].format = .UBYTE4N;
-    pip_desc.layout.attrs[shd.ATTR_vs_texcoord0].format = .SHORT2N;
-    pip = sg.makePipeline(pip_desc);
+    actor_pip_desc.layout.attrs[shd.ATTR_vs_pos].format = .FLOAT3;
+    actor_pip_desc.layout.attrs[shd.ATTR_vs_color0].format = .UBYTE4N;
+    actor_pip_desc.layout.attrs[shd.ATTR_vs_texcoord0].format = .SHORT2N;
+    actor_pip = sg.makePipeline(actor_pip_desc);
+
+    ///////////////////////////////////////////////////////////////////////////
+
     stime.setup();
 
     cworld = map.loadMap(mapdata) catch @panic("Error loading world :(");
@@ -192,7 +222,7 @@ export fn frame() void {
     // RENDER TILES ////////////////////////////////////////////////////////////////////////////
 
     bind.fs_images[shd.SLOT_tex] = tileset.sktexture;
-    sg.applyPipeline(pip);
+    sg.applyPipeline(tile_pip);
     sg.applyBindings(bind);
 
     var TILE_ROWS = i2f(tileset.width) / TILE_WIDTH;
@@ -234,7 +264,7 @@ export fn frame() void {
     }
 
     bind.fs_images[shd.SLOT_tex] = actorset.sktexture;
-    sg.applyPipeline(pip);
+    sg.applyPipeline(actor_pip);
     sg.applyBindings(bind);
 
     for (clevel.actors) |*actor| {
