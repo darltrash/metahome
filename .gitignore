@@ -1,6 +1,6 @@
 _METAHOME
 metahome
 DATA.zip
-*.mh.*
+*.mh.?
 zig-cache/
 *sync-conflict*
