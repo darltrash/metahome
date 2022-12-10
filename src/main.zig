@@ -1,412 +1,517 @@
-const DEBUGMODE = @import("builtin").mode == @import("builtin").Mode.Debug;
+const DEBUGMODE = true;
+const std   = @import("std");
 
-const std = @import("std");
-
-const sg = @import("sokol").gfx;
-const sapp = @import("sokol").app;
-const stime = @import("sokol").time;
+const sg    = @import("sokol").gfx;
+const sapp  = @import("sokol").app;
 const sgapp = @import("sokol").app_gfx_glue;
-const sdtx = @import("sokol").debugtext;
-const sa = @import("sokol").audio;
+const st    = @import("sokol").debugtext;
 
-const formats = @import("fileformats");
-const PNG = formats.Png;
+const shd   = @import("quad.glsl.zig");
+const extra = @import("extra.zig");
+const input = @import("input.zig");
+const assets = @import("assets");
+const c     = @import("c");
 
-const map = @import("level.zig");
-const fs = @import("fs");
+const font  = @import("font.zig");
 
-const math = @import("math.zig");
+var main_font: font.Font = undefined;
 
-const shd = @import("shaders/main.zig");
-const errhandler = @import("errorhandler.zig");
+const chunk_size = 8 * 8;
+const quad_amount = 2048;
 
-const TILE_WIDTH = 8;
-const TILE_HEIGHT = 8;
+const state = struct {
+    var bind: sg.Bindings = .{};
+    var pip: sg.Pipeline = .{};
+    var pass_action: sg.PassAction = .{};
+    var text_pass_action: sg.PassAction = .{};
 
-const ACTOR_WIDTH = 16;
-const ACTOR_HEIGHT = 16;
+    var width: f64 = 0;
+    var height: f64 = 0;
 
-var camera: map.Vec3 = .{ .z = 3 };
-pub fn getCamera() *map.Vec3 {
-    return &camera;
-}
+    var vertices: [quad_amount * 36]f32 = undefined;
+    var temp_camera: Position = .{};
+    var camera: Position = .{};
+    var current: usize = 0;
+    var allocator: std.mem.Allocator = undefined;
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+    var atlas: Image = undefined;
 
-pub fn times(n: isize) callconv(.Inline) []const void { // Thanks shake
-    return @as([*]void, undefined)[0..@intCast(usize, n)];
-}
+    var map: Map = undefined;
+};
 
-pub const Texture = struct {
-    sktexture: sg.Image,
-    width: u32,
-    height: u32,
+pub const Color = sg.Color;
 
-    pub fn fromRaw(data: anytype, width: u32, height: u32) Texture {
-        var img_desc: sg.ImageDesc = .{ .width = @intCast(i32, width), .height = @intCast(i32, height) };
-        img_desc.data.subimage[0][0] = sg.asRange(data);
+pub const Index = struct {
+    x: i32 = 0, 
+    y: i32 = 0
+};
 
-        return Texture{
-            .sktexture = sg.makeImage(img_desc),
-            .width = width,
-            .height = height,
-        };
-    }
+pub const Position = struct {
+    x: f64 = 0.0,
+    y: f64 = 0.0,
+    z: f64 = 0.0,
 
-    pub fn fromPNGPath(filename: [:0]const u8) !Texture {
-        var pngdata = try PNG.fromFile(filename);
+    pub fn lerp(self: Position, into: Position, delta: f64) Position {
+        var n = self;
+        n.x = extra.lerp(f64, self.x, into.x, delta);
+        n.y = extra.lerp(f64, self.y, into.y, delta);
+        n.z = extra.lerp(f64, self.z, into.z, delta);
 
-        var img_desc: sg.ImageDesc = .{
-            .width = @intCast(i32, pngdata.width),
-            .height = @intCast(i32, pngdata.height),
-        };
-        img_desc.data.subimage[0][0] = sg.asRange(pngdata.raw);
+        return n;
+    } 
 
-        return Texture{
-            .sktexture = sg.makeImage(img_desc),
-            .width = pngdata.width,
-            .height = pngdata.height,
+    pub fn toIndex(self: Position) Index {
+        return .{ 
+            .x = @floatToInt(i32, @divFloor(self.x, @intToFloat(f64, chunk_size))), 
+            .y = @floatToInt(i32, @divFloor(self.y, @intToFloat(f64, chunk_size))) 
         };
     }
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+pub const Rectangle = struct {
+    pub const clip = Rectangle {
+        .x = -1, .y = -1,
+        .w =  2, .h =  2
+    }; // Clip space min and max. [Pos, Size] format
 
-const Vertex = packed struct { x: f32 = 0, y: f32 = 0, z: f32 = 0, color: u32 = 0xFFFFFFFF, u: i16, v: i16 };
+    x: f64 = 0.0,
+    y: f64 = 0.0,
+    w: f64 = 0.0,
+    h: f64 = 0.0,
 
-var pass_action: sg.PassAction = .{};
-var tile_pip: sg.Pipeline = .{};
-var actor_pip: sg.Pipeline = .{};
-var bind: sg.Bindings = .{};
+    pub fn colliding(self: Rectangle, other: Rectangle) bool {
+        return self.x  < (other.x+other.w) and
+               other.x < (self.x+self.w) and
+               self.y  < (other.y+other.h) and
+               other.y < (self.y+self.h);
+    }
 
-var GPA = std.heap.GeneralPurposeAllocator(.{}){};
-var tilelist = std.ArrayList(Tile).init(&GPA.allocator);
+    pub fn visible(self: Rectangle) ?Rectangle {
+        const w = state.width  / state.camera.z / 2;
+        const h = state.height / state.camera.z / 2;
 
-var WorldStream: std.json.TokenStream = undefined;
-var cworld: map.World = undefined;
-var clevel: map.Level = undefined;
+        var n: Rectangle = .{};
+        n.x = (self.x - state.camera.x) / w;
+        n.y = (self.y - state.camera.y) / h;
+        n.w = self.w / w;
+        n.h = self.h / h;
 
-var tileset: Texture = undefined;
-var actorset: Texture = undefined;
+        return if (n.colliding(Rectangle.clip)) n else null;
+    }
+};
 
-const mapdata = @embedFile("../maps/test.mh.map");
+pub const Image = struct { 
+    w: u32 = 0, 
+    h: u32 = 0, 
+    handle: sg.Image,
 
-export fn audio(a: [*c]f32, b: i32, c: i32) void {}
+    pub fn new(raw: []const u8) !Image {
+        var a: Image = undefined;
+
+        var w: c_int = 0;
+        var h: c_int = 0;
+
+        if (c.stbi_info_from_memory(raw.ptr, @intCast(c_int, raw.len), &w, &h, null) == 0)
+            return error.NotPngFile;
+
+        a.w = @intCast(u32, w);
+        a.h = @intCast(u32, h);
+
+        if (a.w <= 0 or a.h <= 0) 
+            return error.NoPixels;
+
+        if (c.stbi_is_16_bit_from_memory(raw.ptr, @intCast(c_int, raw.len)) != 0)
+            return error.InvalidFormat;
+
+        const bits_per_channel = 8;
+        const channel_count = 4;
+
+        const image_data = c.stbi_load_from_memory(raw.ptr, @intCast(c_int, raw.len), &w, &h, null, channel_count);
+
+        if (image_data == null) 
+            return error.NoMem;
+
+        var img = sg.ImageDesc {
+            .width  = @intCast(i32, a.w), 
+            .height = @intCast(i32, a.h),
+        };
+
+        var pitch = a.w * bits_per_channel * channel_count / 8;
+
+        img.data.subimage[0][0] = sg.asRange(image_data[0 .. a.h * pitch]);
+        a.handle = sg.makeImage(img);
+
+        std.c.free(image_data);
+
+        return a;
+    }
+};
+
+pub const Tile = struct {
+    position: Position = .{},
+    sprite: Rectangle = .{}
+};
+
+pub const Entity = struct {
+
+};
+
+pub const Chunk = struct {
+    index: Index = .{},
+    tiles: std.ArrayList(Tile)
+};
+
+pub const Map = struct {
+    pub const Proto = struct {
+        width: u32,
+        height: u32,
+        uid: u32,
+        tiles: [][6]f64
+    };
+
+    chunks: std.AutoHashMap(Index, Chunk),
+
+    pub fn getChunk(self: *Map, index: Index) callconv(.Inline) ?*Chunk {
+        return self.chunks.getPtr(index);
+    }
+
+    pub fn getChunkOrCreate(self: *Map, index: Index, allocator: std.mem.Allocator) !*Chunk {
+        var a = self.chunks.getPtr(index);
+        var b: Chunk = undefined;
+
+        if (a == null) {
+            b = Chunk {
+                .index = index,
+                .tiles = std.ArrayList(Tile).init(allocator)
+            };
+
+            try self.chunks.put(index, b);
+        }
+
+        return self.getChunk(index).?;
+    }
+
+    pub fn load(str: []const u8, allocator: std.mem.Allocator) !Map {
+        var map = Map {
+            .chunks = std.AutoHashMap(Index, Chunk).init(allocator)
+        };
+
+        var stream = std.json.TokenStream.init(str);
+        const res = try std.json.parse(Proto, &stream, .{
+            .allocator = allocator
+        });
+        
+        for (res.tiles) | tile | {
+            var position = Position {
+                .x = tile[0], 
+                .y = tile[1]
+            };
+            
+            var chunk = try map.getChunkOrCreate(position.toIndex(), allocator);
+
+            try chunk.tiles.append(.{
+                .position = position,
+                .sprite = .{
+                    .x = tile[2], .y = tile[3],
+                    .w = tile[4], .h = tile[5]
+                }
+            });
+        }
+
+        return map;
+    }
+};
 
 export fn init() void {
-    sa.setup(.{ .stream_cb = audio, .num_channels = 2 });
-
-    fs.init();
-
-    sg.setup(.{ .context = sgapp.context() });
-    pass_action.colors[0] = .{
-        .action = .CLEAR,
-        .value = .{ .r = 0.08, .g = 0.08, .b = 0.11, .a = 1.0 }, // HELLO EIGENGRAU!
-    };
-
-    tileset = Texture.fromPNGPath("sprites/test.png") catch {
-        @panic("Unable to load Tileset.");
-    };
-
-    actorset = Texture.fromPNGPath("sprites/actor.png") catch {
-        @panic("Unable to load actor Tileset.");
-    };
-
-    const QuadVertices = [4]Vertex{
-        .{ .x = 2, .y = 0, .u = 6553, .v = 6553 }, .{ .x = 2, .y = 2, .u = 6553, .v = 0 },
-        .{ .x = 0, .y = 2, .u = 0, .v = 0 },       .{ .x = 0, .y = 0, .u = 0, .v = 6553 },
-    };
-    const QuadIndices = [6]u16{ 0, 1, 3, 1, 2, 3 };
-
-    bind.vertex_buffers[0] = sg.makeBuffer(.{ .data = sg.asRange(QuadVertices) });
-    bind.index_buffer = sg.makeBuffer(.{
-        .type = .INDEXBUFFER,
-        .data = sg.asRange(QuadIndices),
+    sg.setup(.{
+        .context = sgapp.context()
     });
 
-    /////////////////////////////////////////////////////////////////////////
+    var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
+    state.allocator = gpa.allocator();
 
-    var tile_pip_desc: sg.PipelineDesc = .{
-        .shader = sg.makeShader(shd.mainShaderDesc(sg.queryBackend())),
-        .index_type = .UINT16,
-        .cull_mode = .FRONT,
-        .depth = .{
+    // TODO: PROPERLY HANDLE ERRORS
+    input.setup(state.allocator) catch unreachable;
+
+    var sdtx_desc: st.Desc = .{};
+    sdtx_desc.fonts[0] = st.fontZ1013();
+    st.setup(sdtx_desc);
+
+    state.atlas = Image.new(assets.atl_main) catch unreachable;
+    state.bind.fs_images[shd.SLOT_tex] = state.atlas.handle;
+
+    main_font = font.generate(state.allocator) catch unreachable;
+
+    state.bind.vertex_buffers[0] = sg.makeBuffer(.{
+        .usage = .STREAM,
+        .size = quad_amount * 36 * 4
+    });
+
+    var indices: [quad_amount*6]u32 = undefined;
+    var i: usize = 0;
+    while (i < quad_amount) {
+        var e = @intCast(u32, i * 4);
+
+        indices[(i*6)+0] = e;
+        indices[(i*6)+1] = e+1;
+        indices[(i*6)+2] = e+2;
+        indices[(i*6)+3] = e;
+        indices[(i*6)+4] = e+2;
+        indices[(i*6)+5] = e+3;
+
+        i += 1;
+    }
+
+    state.bind.index_buffer = sg.makeBuffer(.{
+        .type = .INDEXBUFFER,
+        .data = sg.asRange(&indices)
+    });
+
+    var pip_desc: sg.PipelineDesc = .{
+        .index_type = .UINT32,
+        .shader = sg.makeShader(shd.quadShaderDesc(sg.queryBackend())),
+           .depth = .{
             .compare = .LESS_EQUAL,
             .write_enabled = true,
         },
     };
-    tile_pip_desc.colors[0].blend = .{
+
+    pip_desc.colors[0].blend = .{
         .enabled = true,
         .src_factor_rgb = .SRC_ALPHA,
         .dst_factor_rgb = .ONE_MINUS_SRC_ALPHA,
         .src_factor_alpha = .SRC_ALPHA,
         .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
     };
+    
+    pip_desc.layout.attrs[shd.ATTR_vs_vx_position].format = .FLOAT3;
+    pip_desc.layout.attrs[shd.ATTR_vs_vx_color].format = .FLOAT4;
+    pip_desc.layout.attrs[shd.ATTR_vs_vx_uv].format = .FLOAT2; 
 
-    tile_pip_desc.layout.attrs[shd.ATTR_vs_pos].format = .FLOAT3;
-    tile_pip_desc.layout.attrs[shd.ATTR_vs_color0].format = .UBYTE4N;
-    tile_pip_desc.layout.attrs[shd.ATTR_vs_texcoord0].format = .SHORT2N;
-    tile_pip = sg.makePipeline(tile_pip_desc);
+    state.pip = sg.makePipeline(pip_desc);
 
-    ///////////////////////////////////////////////////////////////////////////
+    state.pass_action.colors[0] = .{ .action=.CLEAR, .value=.{ .r=0, .g=0, .b=0, .a=1 } };
+    state.text_pass_action.colors[0].action = .DONTCARE;
 
-    var actor_pip_desc: sg.PipelineDesc = .{
-        .shader = sg.makeShader(shd.mainShaderDesc(sg.queryBackend())),
-        .index_type = .UINT16,
-        .cull_mode = .NONE,
-        .depth = .{
-            .compare = .LESS_EQUAL,
-            .write_enabled = true,
-        },
-    };
-    actor_pip_desc.colors[0].blend = .{
-        .enabled = true,
-        .src_factor_rgb = .SRC_ALPHA,
-        .dst_factor_rgb = .ONE_MINUS_SRC_ALPHA,
-        .src_factor_alpha = .SRC_ALPHA,
-        .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
+    state.map = Map.load(assets.map_test, state.allocator) catch unreachable;
+}
+
+pub fn sprite(p: Position, s: Rectangle, color: Color, scale: Position) void {
+    if ((36 * state.current) > state.vertices.len) {
+        state.current = 0; // Loop around (yes, this SUCKS)
+    }
+
+    var n = Rectangle {
+        .x = p.x, .y = p.y, 
+        .w = s.w * scale.x, .h = s.h * scale.y
     };
 
-    actor_pip_desc.layout.attrs[shd.ATTR_vs_pos].format = .FLOAT3;
-    actor_pip_desc.layout.attrs[shd.ATTR_vs_color0].format = .UBYTE4N;
-    actor_pip_desc.layout.attrs[shd.ATTR_vs_texcoord0].format = .SHORT2N;
-    actor_pip = sg.makePipeline(actor_pip_desc);
+    n = n.visible() orelse return;
 
-    ///////////////////////////////////////////////////////////////////////////
+    // [Pos, Size] to [Corner A, Corner B]
+    n.w += n.x;
+    n.h += n.y;
 
-    stime.setup();
+    var u: Rectangle = .{};
+    u.x = s.x / @intToFloat(f64, state.atlas.w);
+    u.y = s.y / @intToFloat(f64, state.atlas.h);
+    u.w = s.w / @intToFloat(f64, state.atlas.w);
+    u.h = s.h / @intToFloat(f64, state.atlas.h);
 
-    cworld = map.loadMap(mapdata) catch @panic("Error loading world :(");
-    clevel = cworld.levels[0];
+    // [Pos, Size] to [Corner A, Corner B]
+    u.w += u.x;
+    u.h += u.y;
+    
+    const tmp_vertices = [_]f32 { // i hate this coordinate system :P
+        @floatCast(f32, n.x), -@floatCast(f32, n.h), 1.0,   color.r, color.g, color.b, color.a,   @floatCast(f32, u.x), @floatCast(f32, u.h),
+        @floatCast(f32, n.w), -@floatCast(f32, n.h), 1.0,   color.r, color.g, color.b, color.a,   @floatCast(f32, u.w), @floatCast(f32, u.h),
+        @floatCast(f32, n.w), -@floatCast(f32, n.y), 1.0,   color.r, color.g, color.b, color.a,   @floatCast(f32, u.w), @floatCast(f32, u.y),
+        @floatCast(f32, n.x), -@floatCast(f32, n.y), 1.0,   color.r, color.g, color.b, color.a,   @floatCast(f32, u.x), @floatCast(f32, u.y)
+    };
 
-    if (comptime DEBUGMODE) {
-        var sdtx_desc: sdtx.Desc = .{};
-        sdtx_desc.fonts[0] = @import("fontdata.zig").fontdesc;
-        sdtx.setup(sdtx_desc);
-        sdtx.font(0);
+    var o = state.current * 36;
+    for (tmp_vertices) | v, i | {
+        state.vertices[o + i] = v;
+    }
+
+    state.current += 1;
+}
+
+pub fn centeredSprite(p: Position, s: Rectangle, color: Color, scale: Position) void {
+    var np: Position = p;
+    np.x -= s.w * scale.x * 0.5;
+    np.y -= s.h * scale.y;
+    sprite(np, s, color, scale);
+}
+
+pub fn rect(r: Rectangle, color: Color) void {
+    sprite(
+        .{.x=r.x, .y=r.y}, 
+        .{.x=0, .y=0, .w=1, .h=1}, 
+        color, .{.x=r.w, .y=r.h}
+    );
+}
+
+pub fn print(p: Position, t: []const u8, end: ?usize, color: Color) !void {
+    if (end != null and end.? == 0)
+        return;
+
+    var cp: Position = p;
+    var i: usize = 0;
+
+    var iter = (try std.unicode.Utf8View.init(t)).iterator();
+    while (iter.nextCodepoint()) |code| {
+        switch (code) {
+            '\n' => {
+                cp.x = p.x;
+                cp.y += 8;
+            },
+
+            else => {
+                var e: font.Character = main_font.characters.get(code) orelse .{};
+                var tp = cp;
+                tp.y -= e.origin.y;
+                sprite(tp, e.sprite, color, .{.x=1, .y=1});
+                cp.x += e.sprite.w - e.origin.x;
+            }
+        }
+
+        i += 1;
+
+        if (end != null and i == end.?)
+            return;
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-var screenWidth: f32 = 0;
-var screenHeight: f32 = 0;
-
-var delta: f32 = 0;
-var last_time: u64 = 0;
-
-pub fn i2f(int: anytype) callconv(.Inline) f32 { // I added this function for pure convenience
-    return @intToFloat(f32, int); // It shouldnt affect runtime performance
-}
+var timer: f64 = 0;
+var s1: f64 = 1;
+var s2: f64 = 1;
 
 export fn frame() void {
-    screenWidth = sapp.widthf();
-    screenHeight = sapp.heightf();
+    input.update();
 
-    if (comptime DEBUGMODE) {
-        sdtx.canvas(screenWidth * 0.5, screenHeight * 0.5);
-        sdtx.origin(1, 1);
+    const delta = sapp.frameDuration();
+    timer += delta;
 
-        sdtx.color1i(0xFFAA67C7);
-        sdtx.print("m e t a h o m e : ---------------------------------\n\n", .{});
+    state.width = @floatCast(f64, sapp.widthf());
+    state.height = @floatCast(f64, sapp.heightf());
+    state.temp_camera.z = @max(@floor(@min(state.width, state.height) / 150), 1);
+    state.camera = state.camera.lerp(state.temp_camera, delta * 16);
 
-        sdtx.color1i(0xFFFFAE00);
-        sdtx.print("hello again! =)\nwelcome to my little side-project!\n\n", .{});
+    var v: f64 = 64;
 
-        sdtx.print("use the ARROW KEYS to move spriteboy\n", .{});
-        sdtx.print("use Z to display collision boxes\n", .{});
+    if (input.down(.up) > 0) 
+        state.temp_camera.y -= delta * v;
+    
+    if (input.down(.down) > 0) 
+        state.temp_camera.y += delta * v;
+
+    if (input.down(.left) > 0) {
+        state.temp_camera.x -= delta * v;
+        s2 = -1;
+    }
+     
+    if (input.down(.right) > 0) {
+        state.temp_camera.x += delta * v;
+        s2 = 1;
     }
 
-    sg.beginDefaultPass(pass_action, sapp.width(), sapp.height());
+    s1 = extra.lerp(f64, s1, s2, delta * 16);
 
-    // RENDER TILES ////////////////////////////////////////////////////////////////////////////
+    state.current = 0;
 
-    bind.fs_images[shd.SLOT_tex] = tileset.sktexture;
-    sg.applyPipeline(tile_pip);
-    sg.applyBindings(bind);
+    var cam_start = (Position {
+        .x = state.camera.x-(state.width  / state.camera.z / 2), 
+        .y = state.camera.y-(state.height / state.camera.z / 2)
+    }).toIndex();
 
-    var TILE_ROWS = i2f(tileset.width) / TILE_WIDTH;
-    var TILE_COLUMNS = i2f(tileset.height) / TILE_HEIGHT;
+    var cam_end = (Position {
+        .x = state.camera.x+(state.width  / state.camera.z / 2), 
+        .y = state.camera.y+(state.height / state.camera.z / 2)
+    }).toIndex();
 
-    for (clevel.tiles) |tile| {
-        const scale = math.Mat4.scale((TILE_WIDTH * camera.z) / screenWidth, (TILE_HEIGHT * camera.z) / screenHeight, 1);
-        const trans = math.Mat4.translate(.{
-            .x = ((i2f(tile.x) * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
-            .y = ((i2f(tile.y) * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
-            .z = 0,
-        });
-
-        sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
-            .globalcolor = .{ 0.4, 0.5, 0.6, 1 },
-            .cropping = .{
-                TILE_WIDTH / i2f(tileset.width),
-                TILE_HEIGHT / i2f(tileset.height),
-                i2f(tile.spr.x) / i2f(tileset.width),
-                i2f(tile.spr.y) / i2f(tileset.height),
-            },
-        }));
-
-        if (keys.attack and tile.collide) {
-            sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
-                .globalcolor = .{ 0.6, 0.5, 0.8, 1 },
-                .cropping = .{
-                    TILE_WIDTH / i2f(tileset.width),
-                    TILE_HEIGHT / i2f(tileset.height),
-                    0.0,
-                    0.0,
-                },
-            }));
-        }
-
-        sg.applyUniforms(.VS, shd.SLOT_vs_params, sg.asRange(shd.VsParams{ .mvp = math.Mat4.mul(trans, scale) }));
-
-        sg.draw(0, 6, 1);
-    }
-
-    bind.fs_images[shd.SLOT_tex] = actorset.sktexture;
-    sg.applyPipeline(actor_pip);
-    sg.applyBindings(bind);
-
-    for (clevel.actors) |*actor| {
-        if (actor.process) {
-            switch (actor.kind) {
-                .Player => actor.processPlayer(delta),
-
-                else => {},
+    var current_index = cam_start;
+    var chunk_amount: usize = 0;
+    while (current_index.y <= cam_end.y) {
+        var chunk = state.map.getChunk(current_index);
+        if (chunk != null) {
+            for (chunk.?.tiles.items) | tile | {
+                sprite (
+                    tile.position, tile.sprite, 
+                    .{.r=1.0, .g=1.0, .b=1.0, .a=1.0},
+                    .{.x=1, .y=1}
+                );
             }
 
-            actor.pos.x += actor.vel.x * delta;
-            actor.pos.y += actor.vel.y * delta;
+            chunk_amount += 1;
         }
-
-        if (actor.visible) {
-            var flip_x: f32 = if (actor.flip_x) -1 else 1;
-            var flip_y: f32 = if (actor.flip_y) -1 else 1;
-
-            var offs_x: f32 = if (actor.flip_x) i2f(ACTOR_WIDTH) else 0;
-            var offs_y: f32 = if (actor.flip_y) i2f(ACTOR_HEIGHT) else 0;
-
-            const scale = math.Mat4.scale((ACTOR_WIDTH * camera.z * flip_x) / screenWidth, (ACTOR_HEIGHT * camera.z * flip_y) / screenHeight, 5);
-            const trans = math.Mat4.translate(.{
-                .x = (((actor.pos.x + offs_x) * 2 * camera.z) - (camera.x * 2 * camera.z)) / screenWidth,
-                .y = (((actor.pos.y + offs_y) * 2 * camera.z) - (camera.y * 2 * camera.z)) / -screenHeight,
-                .z = 0,
-            });
-
-            sg.applyUniforms(.FS, shd.SLOT_fs_params, sg.asRange(shd.FsParams{
-                .globalcolor = .{ 1, 1, 1, 1 },
-                .cropping = .{
-                    i2f(ACTOR_WIDTH) / i2f(actorset.width),
-                    i2f(ACTOR_HEIGHT) / i2f(actorset.height),
-                    (i2f(actor.spr.x) * i2f(ACTOR_WIDTH)) / i2f(actorset.width),
-                    (i2f(actor.spr.y) * i2f(ACTOR_HEIGHT)) / i2f(actorset.height),
-                },
-            }));
-
-            sg.applyUniforms(.VS, shd.SLOT_vs_params, sg.asRange(shd.VsParams{ .mvp = math.Mat4.mul(trans, scale) }));
-
-            sg.draw(0, 6, 1);
+        current_index.x += 1;
+        if (current_index.x > cam_end.x) {
+            current_index.x = cam_start.x;
+            current_index.y += 1;
         }
     }
+
+    centeredSprite(
+        state.camera, .{.x=56, .y=32, .w=16, .h=16},
+        .{.r=1.0, .g=0.5, .b=1.0, .a=1.0},
+        .{.x=s1, .y=1}
+    );
+
+    rect(.{
+        .x = state.camera.x-2, 
+        .y = state.camera.y-2, 
+        .w = 4, .h = 4
+    }, .{.r=1, .g=1, .b=1, .a=1});
+
+    print(.{.x=0, .y=0}, "another metahome?", null, .{.r=1, .g=1, .b=1, .a=1}) catch unreachable;
+
+    //std.log.info("{}", .{current});
+
+    sg.updateBuffer(state.bind.vertex_buffers[0], sg.asRange(&state.vertices));
+
+    sg.beginDefaultPass(state.pass_action, sapp.width(), sapp.height());
+    sg.applyPipeline(state.pip);
+    sg.applyBindings(state.bind);
+    sg.draw(0, @intCast(u32, state.current) * 6, 1);
+    sg.endPass();
 
     if (comptime DEBUGMODE) {
-        sdtx.draw();
+        st.canvas(sapp.widthf()/2, sapp.heightf()/2);
+        st.color1i(0xffffffff);
+        st.origin(2, 2);
+        st.font(0);
+        st.print("Visible:\n\tQuads: {}/{}\n\tChnks: {}\n", .{state.current, quad_amount, chunk_amount});
+        st.crlf();
+        st.print("Camera: [{d:.1}, {d:.1}, {d:.1}]", .{state.camera.x, state.camera.y, state.camera.z});
+
+        sg.beginDefaultPass(state.text_pass_action, sapp.width(), sapp.height());
+        st.draw();
+        sg.endPass();
     }
-    sg.endPass();
+
     sg.commit();
-
-    delta = @floatCast(f32, stime.sec(stime.laptime(&last_time)));
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-const _keystruct = struct {
-    up: bool = false,
-    down: bool = false,
-    left: bool = false,
-    right: bool = false,
-
-    attack: bool = false,
-    any: bool = false,
-
-    home: bool = false,
-};
-var keys = _keystruct{};
-
-const _mousestruct = struct {
-    x: f32 = 0,
-    y: f32 = 0,
-    dx: f32 = 0,
-    dy: f32 = 0,
-    left: bool = false,
-    middle: bool = false,
-    right: bool = false,
-    any: bool = false,
-};
-var mouse = _mousestruct{};
-
-export fn input(ev: ?*const sapp.Event) void {
-    const event = ev.?;
-    if ((event.type == .KEY_DOWN) or (event.type == .KEY_UP)) {
-        const key_pressed = event.type == .KEY_DOWN;
-        keys.any = key_pressed;
-        switch (event.key_code) {
-            .UP => keys.up = key_pressed,
-            .DOWN => keys.down = key_pressed,
-            .LEFT => keys.left = key_pressed,
-            .RIGHT => keys.right = key_pressed,
-
-            .Z => keys.attack = key_pressed,
-
-            .BACKSPACE => keys.home = key_pressed,
-            else => {},
-        }
-    } else if ((event.type == .MOUSE_DOWN) or (event.type == .MOUSE_UP)) {
-        const mouse_pressed = event.type == .MOUSE_DOWN;
-        mouse.any = mouse_pressed;
-        switch (event.mouse_button) {
-            .LEFT => mouse.left = mouse_pressed,
-            .MIDDLE => mouse.middle = mouse_pressed,
-            .RIGHT => mouse.right = mouse_pressed,
-            else => {},
-        }
-    } else if (event.type == .MOUSE_MOVE) {
-        mouse.x = event.mouse_x;
-        mouse.y = event.mouse_y;
-
-        mouse.dx = event.mouse_dx;
-        mouse.dy = event.mouse_dy;
-    }
+export fn cleanup() void {
+    sg.shutdown();
 }
 
-pub fn getKeys() *_keystruct {
-    return &keys;
+export fn event(ev: [*c]const sapp.Event) void {
+    input.handle(ev) catch unreachable;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn main() void {
     sapp.run(.{
         .init_cb = init,
         .frame_cb = frame,
         .cleanup_cb = cleanup,
-        .event_cb = input,
-        .fail_cb = fail,
-        .width = 1024,
+        .event_cb = event,
+        .width = 800,
         .height = 600,
-        .window_title = "m e t a h o m e",
+        .icon = .{
+            .sokol_default = true,
+        },
+        .window_title = "quad.zig"
     });
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-export fn cleanup() void {
-    sg.shutdown();
-    sa.shutdown();
-    _ = fs.deinit();
-    var leaked = GPA.deinit();
-}
-
-export fn fail(err: [*c]const u8) callconv(.C) void {
-    errhandler.handle(err);
 }

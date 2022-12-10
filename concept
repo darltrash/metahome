@@ -1,0 +1,15 @@
+Every quad is stored into a vertex buffer as 4 preprocessed
+vertices, each vertex is in clip space and gets rendered 
+directly into screen space, zero matrix transformations.
+
+The vertex buffer has a fixed size of elements and the index 
+buffer is always the same, as every object is a quad.
+
+If the processed vertices do not fit in clip space, those get 
+skipped altogether and the vertex space gets occupied by 
+something else.
+
+The vertex shader is as simple as it can be, and it will
+try to stay the same way, probably forever since it aims
+to work in Mali 400 systems, which have a very limited
+vertex shader instruction buffer.
