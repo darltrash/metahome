@@ -32,6 +32,17 @@ REQUIREMENTS:
         includes systems such as FreeBSD.
 
 HOW TO BUILD AND RUN:
+    BUILD MAPS:
+        They come precompiled most of the time, so only do this if
+        you have modified the maps in any way.
+
+        The maps are done through LDTK and they need a functional
+        Lua5.1+ install and a functional unix-like OS.
+
+        - Clone this repo
+        - run "zig build maps"
+        - that's it :)
+
     RUN DEBUG:
         - Clone this repo
         - run "zig build run"

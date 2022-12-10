@@ -47,6 +47,13 @@ pub fn build(b: *std.build.Builder) void {
         run_cmd.addArgs(args);
     }
 
+    const map_step = b.step("maps", "Compile maps (REQUIRES LUA, *NIX)");
+    map_step.dependOn(
+        &b.addSystemCommand(&[_][]const u8 {
+            "sh", "assets/compile_maps.sh"
+        }).step
+    );
+
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
