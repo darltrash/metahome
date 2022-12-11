@@ -12,7 +12,8 @@ f:close()
         width = level.pxWid,
         height = level.pxHei,
         uid = level.uid,
-        tiles = {}
+        tiles = {},
+        entities = {}
     }
 
     for _, layer in ipairs(level.layerInstances) do
@@ -24,10 +25,49 @@ f:close()
                     layer.__gridSize, layer.__gridSize
                 })
             end
+        elseif layer.__type == "Entities" then
+            for _, entity in ipairs(layer.entityInstances) do
+                local offset = {
+                    x = entity.__pivot[1] * entity.width,
+                    y = entity.__pivot[2] * entity.height
+                }
+
+                local tw, th = entity.width, entity.height
+                if entity.__tile then
+                    tw = entity.__tile.w
+                    th = entity.__tile.h
+                end
+
+                table.insert(out_level.entities, {
+                    sprite = entity.__tile and {
+                        x = entity.__tile.x, y = entity.__tile.y,
+                        w = entity.__tile.w, h = entity.__tile.h
+                    } or nil,
+
+                    size = {
+                        x = entity.width, y = entity.height
+                    },
+
+                    position = {
+                        x = entity.px[1], 
+                        y = entity.px[2]
+                    },
+                    
+                    visibility = {
+                        x = -offset.x, 
+                        y = -offset.y,
+                        w = tw,
+                        h = th
+                    },
+
+                    offset = offset
+                })
+            end
+
         end
     end
 --end
 
-local f = assert(io.open(filename:sub(1, #filename-5)..".json", "r+"), "OUTPUT FILE COULD NOT BE OPENED.")
+local f = assert(io.open(filename:sub(1, #filename-5)..".json", "w+"), "OUTPUT FILE COULD NOT BE OPENED.")
 f:write(json.encode(out_level))
 f:close()
