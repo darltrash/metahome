@@ -19,7 +19,7 @@ var main_font: font.Font = undefined;
 const chunk_size = 8 * 8;
 const quad_amount = 2048;
 
-const state = struct {
+pub const state = struct {
     var bind: sg.Bindings = .{};
     var pip: sg.Pipeline = .{};
     var pass_action: sg.PassAction = .{};
@@ -121,7 +121,7 @@ const state = struct {
 
         self.width = @floatCast(f64, sapp.widthf());
         self.height = @floatCast(f64, sapp.heightf());
-        self.temp_camera.z = @max(@floor(@min(self.width, self.height) / 150), 1);
+        self.temp_camera.z = @max(@floor(@min(self.width, self.height) / 200), 1);
         self.camera = self.camera.lerp(self.temp_camera, delta * 16);
 
         var v: f64 = 64;
@@ -203,22 +203,25 @@ const state = struct {
                 .{.x=s1, .y=1}
             );
 
-            rect(
-                .{
+            if (comptime DEBUGMODE) {
+                var penis = Rectangle {
                     .x = entity.position.x+entity.visibility.x,
                     .y = entity.position.y+entity.visibility.y,
                     .w = entity.visibility.w,
                     .h = entity.visibility.h
 
-                }, 
-                .{.r=1, .g=1, .b=1, .a=0.8}
-            );
+                };
+                rect(
+                    penis, 
+                    .{.r=1, .g=1, .b=1, .a=0.8}
+                );
 
-            rect(.{
-                .x = entity.position.x-2, 
-                .y = entity.position.y-2, 
-                .w = 4, .h = 4
-            }, .{.r=1, .g=1, .b=1, .a=1});
+                rect(.{
+                    .x = entity.position.x-2, 
+                    .y = entity.position.y-2, 
+                    .w = 4, .h = 4
+                }, .{.r=1, .g=1, .b=1, .a=1});
+            }
         }
 
         entities.clearAndFree();
@@ -338,6 +341,99 @@ pub const Rectangle = struct {
 
         return if (n.colliding(Rectangle.clip)) n else null;
     }
+
+    pub fn expand(self: Rectangle, bx: f64, by: f64) Rectangle {
+        return .{
+            .x = self.x - (bx/2), .y = self.y - (by/2),
+            .w = self.w + bx,     .h = self.h + by
+        };
+    }
+
+    pub fn getMiddle(self: Rectangle) Position {
+        return .{
+            .x = self.x+(self.w/2),
+            .y = self.y+(self.h/2)
+        };
+    }
+
+    pub fn vsRay(self: Rectangle, start: Position, end: Position) ?Collision {
+        var inv_dir: Position = .{
+            .x = 1 / end.x, 
+            .y = 1 / end.y
+        };
+        
+		var near: Position = .{
+            .x = (self.x - start.x) * inv_dir.x, 
+            .y = (self.y - start.y) * inv_dir.y
+        };
+
+        var far: Position = .{
+            .x = (self.x + self.w - start.x) * inv_dir.x, 
+            .y = (self.y + self.h - start.y) * inv_dir.y
+        };
+
+        if (near.x > far.x) {
+            var _x = near.x;
+            near.x = far.x;
+            far.x = _x;
+        }
+
+        if (near.y > far.y) {
+            var _y = near.y;
+            near.y = far.y;
+            far.y = _y;
+        }
+
+        if (near.x > far.y or near.y > far.x)
+            return null;
+
+        var hit_near = @max(near.x, near.y);
+        var hit_far  = @min(far.x,  far.y);
+
+        if (hit_far < 0)
+            return null;
+
+        var collision: Collision = .{
+            .at = .{
+                .x = start.x + hit_near * end.x,
+                .y = start.y + hit_near * end.y
+            },
+            .near = hit_near
+        };
+
+        if (near.x > near.y)
+            collision.normal.x = if (inv_dir.x < 0) 1 else -1
+
+        else if (near.x < near.y)
+            collision.normal.y = if (inv_dir.y < 0) 1 else -1;
+        
+        return collision;
+    }
+
+    pub fn vsKinematic(self: Rectangle, b: Rectangle, velocity: Position, delta: f64) ?Collision {
+        if (velocity.x == 0 and velocity.y == 0)
+            return null;
+
+        var collision = 
+            self.expand(b.w, b.h).vsRay(b.getMiddle(), velocity.mul(delta))
+            orelse return null;
+
+        if (collision.near >= 0.0 and collision.near < 1.0)
+            return collision;
+
+        return null;
+    }
+
+    pub fn solveCollision(self: Rectangle, b: Rectangle, velocity: Position, delta: f64) ?Collision {
+        var collision = b.vsKinematic(self, velocity, delta) orelse return null;
+
+        var v: Position = velocity;
+        v.x = velocity.x + (collision.normal.x * @fabs(velocity.x) * (1-collision.near));
+        v.y = velocity.y + (collision.normal.y * @fabs(velocity.y) * (1-collision.near));
+
+        collision.at = collision.at.addPosition(v);
+        return collision;
+    }
 };
 
 pub const Image = struct { 
@@ -406,10 +502,22 @@ pub const Entity = struct {
     }
 };
 
+pub const Collider = struct {
+    entity: *Entity, 
+    bounding: Rectangle = .{}
+};
+
+pub const Collision = struct {
+    normal: Position = .{},
+    at: Position = .{},
+    near: f64 = 0
+};
+
 pub const Chunk = struct {
     index: Index = .{},
     tiles: std.ArrayList(Tile),
-    entities: std.ArrayList(Entity)
+    entities: std.ArrayList(Entity),
+    colliders: std.ArrayList(Collider) = undefined
 };
 
 pub const Map = struct {
