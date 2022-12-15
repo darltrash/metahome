@@ -10,7 +10,7 @@
 	},
 	"jsonVersion": "1.1.3",
 	"appBuildId": 458364,
-	"nextUid": 7,
+	"nextUid": 12,
 	"identifierStyle": "Capitalize",
 	"worldLayout": "Free",
 	"worldGridWidth": 256,
@@ -173,7 +173,101 @@
 			"limitBehavior": "MoveLastOne",
 			"pivotX": 0,
 			"pivotY": 0,
-			"fieldDefs": []
+			"fieldDefs": [
+				{
+					"identifier": "Collider",
+					"__type": "Bool",
+					"uid": 7,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefTags": [],
+					"tilesetUid": null
+				}
+			]
+		},
+		{
+			"identifier": "Player",
+			"uid": 9,
+			"tags": [],
+			"width": 16,
+			"height": 16,
+			"resizableX": false,
+			"resizableY": false,
+			"keepAspectRatio": false,
+			"tileOpacity": 1,
+			"fillOpacity": 0.08,
+			"lineOpacity": 0,
+			"hollow": false,
+			"color": "#E5FFF1",
+			"renderMode": "Tile",
+			"showName": true,
+			"tilesetId": 1,
+			"tileId": 135,
+			"tileRenderMode": "FitInside",
+			"tileRect": { "tilesetUid": 1, "x": 56, "y": 32, "w": 16, "h": 16 },
+			"nineSliceBorders": [],
+			"maxCount": 0,
+			"limitScope": "PerLevel",
+			"limitBehavior": "MoveLastOne",
+			"pivotX": 0.5,
+			"pivotY": 1,
+			"fieldDefs": [
+				{
+					"identifier": "isPlayer",
+					"__type": "Bool",
+					"uid": 11,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorAlwaysShow": false,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefTags": [],
+					"tilesetUid": null
+				}
+			]
 		}
 	], "tilesets": [
 		{
@@ -376,21 +470,21 @@
 							"height": 32,
 							"defUid": 6,
 							"px": [48,64],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
-							"__grid": [13,21],
+							"__grid": [13,20],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
 							"__smartColor": "#D994C2",
 							"iid": "e82f9bf0-7820-11ed-80dc-d55432f6b88e",
-							"width": 32,
-							"height": 16,
+							"width": 28,
+							"height": 20,
 							"defUid": 6,
-							"px": [52,84],
-							"fieldInstances": []
+							"px": [52,80],
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -404,7 +498,7 @@
 							"height": 36,
 							"defUid": 6,
 							"px": [100,64],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -418,7 +512,7 @@
 							"height": 28,
 							"defUid": 6,
 							"px": [48,36],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -432,21 +526,21 @@
 							"height": 32,
 							"defUid": 6,
 							"px": [112,80],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
-							"__grid": [29,25],
+							"__grid": [29,24],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
 							"__smartColor": "#D994C2",
 							"iid": "09cc5870-7820-11ed-80dc-6b038dd7755b",
-							"width": 32,
-							"height": 16,
+							"width": 28,
+							"height": 20,
 							"defUid": 6,
-							"px": [116,100],
-							"fieldInstances": []
+							"px": [116,96],
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -460,7 +554,7 @@
 							"height": 28,
 							"defUid": 6,
 							"px": [112,52],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -474,7 +568,7 @@
 							"height": 36,
 							"defUid": 6,
 							"px": [164,80],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -488,21 +582,21 @@
 							"height": 32,
 							"defUid": 6,
 							"px": [176,112],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
-							"__grid": [45,33],
+							"__grid": [45,32],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
 							"__smartColor": "#D994C2",
 							"iid": "0bf7eb00-7820-11ed-80dc-c7fea2264051",
-							"width": 32,
-							"height": 16,
+							"width": 28,
+							"height": 20,
 							"defUid": 6,
-							"px": [180,132],
-							"fieldInstances": []
+							"px": [180,128],
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -516,7 +610,7 @@
 							"height": 28,
 							"defUid": 6,
 							"px": [176,84],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
 						},
 						{
 							"__identifier": "Collider",
@@ -530,7 +624,21 @@
 							"height": 36,
 							"defUid": 6,
 							"px": [228,112],
-							"fieldInstances": []
+							"fieldInstances": [{ "__identifier": "Collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
+						},
+						{
+							"__identifier": "Player",
+							"__grid": [15,37],
+							"__pivot": [0.5,1],
+							"__tags": [],
+							"__tile": { "tilesetUid": 1, "x": 56, "y": 32, "w": 16, "h": 16 },
+							"__smartColor": "#E5FFF1",
+							"iid": "af7613a0-7820-11ed-8b9c-31a87c09192d",
+							"width": 16,
+							"height": 16,
+							"defUid": 9,
+							"px": [62,152],
+							"fieldInstances": [{ "__identifier": "isPlayer", "__value": true, "__type": "Bool", "__tile": null, "defUid": 11, "realEditorValues": [] }]
 						}
 					]
 				},

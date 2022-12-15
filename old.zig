@@ -124,119 +124,65 @@ pub const state = struct {
         self.temp_camera.z = @max(@floor(@min(self.width, self.height) / 200), 1);
         self.camera = self.camera.lerp(self.temp_camera, delta * 16);
 
-        var v: f64 = 64;
-
-        if (input.down(.up) > 0) 
-            self.temp_camera.y -= delta * v;
-        
-        if (input.down(.down) > 0) 
-            self.temp_camera.y += delta * v;
-
-        if (input.down(.left) > 0) {
-            self.temp_camera.x -= delta * v;
-            s2 = -1;
-        }
-        
-        if (input.down(.right) > 0) {
-            self.temp_camera.x += delta * v;
-            s2 = 1;
-        }
-
-        s1 = extra.lerp(f64, s1, s2, delta * 16);
-
         self.current = 0;
 
-        var cam_start = (Position {
+        var cam = Rectangle {
             .x = self.camera.x-(self.width  / self.camera.z / 2), 
-            .y = self.camera.y-(self.height / self.camera.z / 2)
-        }).toIndex();
+            .y = self.camera.y-(self.height / self.camera.z / 2),
+            .w = self.width  / self.camera.z, 
+            .h = self.height / self.camera.z
+        };
 
-        var cam_end = (Position {
-            .x = self.camera.x+(self.width  / self.camera.z / 2), 
-            .y = self.camera.y+(self.height / self.camera.z / 2)
-        }).toIndex();
+        rectLine(cam, .{.r=1, .g=1, .b=1, .a=0.2});
 
-        var entities = std.ArrayList(Entity).init(self.allocator);
-
-        var current_index = cam_start;
         var chunk_amount: usize = 0;
-        while (current_index.y <= cam_end.y) {
-            var chunk = self.map.getChunk(current_index);
-            if (chunk != null) {
-                for (chunk.?.tiles.items) | tile | {
-                    sprite (
-                        tile.position, tile.sprite, 
-                        .{.r=1.0, .g=1.0, .b=1.0, .a=1.0},
-                        .{.x=1, .y=1}
-                    );
-                }
 
-                for (chunk.?.entities.items) | *entity | {
-                    entity.process(delta);
-                    if (entity.sprite != null)
-                        try entities.append(entity.*);
-                }
-
-                chunk_amount += 1;
-            }
-            current_index.x += 1;
-            if (current_index.x > cam_end.x) {
-                current_index.x = cam_start.x;
-                current_index.y += 1;
+        var iter = map.eachChunk(cam);
+        while (iter.next()) | chunk | {
+            for (chunk.tiles.items) | tile | {
+                sprite (
+                    tile.position, tile.sprite, 
+                    .{.r=1.0, .g=1.0, .b=1.0, .a=1.0},
+                    .{.x=1, .y=1}
+                );
             }
 
-            rectLine(.{
-                .x = @intToFloat(f64, current_index.x*chunk_size),
-                .y = @intToFloat(f64, current_index.y*chunk_size),
-                .w = @intToFloat(f64, chunk_size),
-                .h = @intToFloat(f64, chunk_size),
-            }, .{.r=1, .g=1, .b=1, .a=0.2});
+            for (chunk.colliders.items) | collider | {
+                rect(collider.bounding, .{.r=1, .g=0, .b=0, .a=0.3});
+            }
+
+            chunk_amount += 1;
         }
 
-        for (entities.items) | entity | {
+        for (map.entities.items) | *entity | {
+            try entity.process(&map, state.allocator, delta);
+        }
+
+        for (map.entities.items) | entity | {
+            _ = entity.sprite orelse continue;
+
             centeredSprite(
-                .{
-                    .x = entity.position.x,
-                    .y = entity.position.y
-                }, entity.sprite.?,
-                .{.r=1.0, .g=1.0, .b=1.0, .a=1.0},
-                .{.x=s1, .y=1}
+                entity.position, entity.sprite.?.sprite,
+                entity.sprite.?.tint, entity.sprite.?.scale
             );
 
-            if (comptime DEBUGMODE) {
-                var penis = Rectangle {
-                    .x = entity.position.x+entity.visibility.x,
-                    .y = entity.position.y+entity.visibility.y,
-                    .w = entity.visibility.w,
-                    .h = entity.visibility.h
-
-                };
-                rect(
-                    penis, 
-                    .{.r=1, .g=1, .b=1, .a=0.8}
-                );
-
-                rect(.{
-                    .x = entity.position.x-2, 
-                    .y = entity.position.y-2, 
-                    .w = 4, .h = 4
-                }, .{.r=1, .g=1, .b=1, .a=1});
-            }
+//            if (comptime DEBUGMODE) {
+//                var visibility: Rectangle = .{
+//                    .x = entity.position.x-entity.sprite.?.offset.x,
+//                    .y = entity.position.y-entity.sprite.?.offset.y,
+//                    .w = entity.sprite.?.sprite.w,
+//                    .h = entity.sprite.?.sprite.h
+//                };
+//
+//                rect(visibility, .{.r=1, .g=1, .b=1, .a=0.8});
+//
+//                rect(.{
+//                    .x = entity.position.x-2, 
+//                    .y = entity.position.y-2, 
+//                    .w = 4, .h = 4
+//                }, .{.r=1, .g=1, .b=1, .a=1});
+//            }
         }
-
-        entities.clearAndFree();
-
-        centeredSprite(
-            self.camera, .{.x=56, .y=32, .w=16, .h=16},
-            .{.r=1.0, .g=0.5, .b=1.0, .a=1.0},
-            .{.x=s1, .y=1}
-        );
-
-        rect(.{
-            .x = self.camera.x-2, 
-            .y = self.camera.y-2, 
-            .w = 4, .h = 4
-        }, .{.r=1, .g=1, .b=1, .a=1});
 
         try print(.{.x=0, .y=0}, "another metahome.", null, .{.r=1, .g=1, .b=1, .a=1});
 
@@ -290,6 +236,13 @@ pub const Position = struct {
     } 
 
     pub fn addPosition(self: Position, b: Position) Position {
+        return .{ 
+            .x = self.x + b.x, 
+            .y = self.y + b.y
+        };
+    }
+
+    pub fn subPosition(self: Position, b: Position) Position {
         return .{ 
             .x = self.x - b.x, 
             .y = self.y - b.y
@@ -362,7 +315,7 @@ pub const Rectangle = struct {
             .y = 1 / end.y
         };
         
-		var near: Position = .{
+        var near: Position = .{
             .x = (self.x - start.x) * inv_dir.x, 
             .y = (self.y - start.y) * inv_dir.y
         };
@@ -431,7 +384,7 @@ pub const Rectangle = struct {
         v.x = velocity.x + (collision.normal.x * @fabs(velocity.x) * (1-collision.near));
         v.y = velocity.y + (collision.normal.y * @fabs(velocity.y) * (1-collision.near));
 
-        collision.at = collision.at.addPosition(v);
+        collision.velocity = v;
         return collision;
     }
 };
@@ -485,39 +438,148 @@ pub const Image = struct {
 
 pub const Tile = struct {
     position: Position = .{},
-    sprite: Rectangle = .{}
+    sprite: Rectangle = .{},
+    scale: Position = .{.x=1, .y=1},
+    tint: Color = .{.r=1, .g=1, .b=1, .a=1},
+    offset: Position = .{}
+};
+
+pub const EntityType = enum {
+    none, player
 };
 
 pub const Entity = struct {
-    velocity: ?Position = null,
-    position: Position = .{},
-    sprite: ?Rectangle = null,
+    pub const Collider = struct {
+        bounding: Rectangle = .{},
+        uid: u32 = 0
+    };
+
+    uid: u32 = 0,
+    velocity: ?Position = null, // No velocity == Static
+    sprite: ?Tile = null,
     size: Position = .{},
+    position: Position = .{},
+    collider: ?Rectangle = null,
     offset: Position = .{},
-    visibility: Rectangle = .{},
 
-    pub fn process(self: *Entity, delta: f64) void {
-        if (self.velocity != null)
-            self.position = self.velocity.?.addPosition(self.position.mul(delta));
+    fields: union(EntityType) {
+        none: struct {
+            __none: bool
+        },
+        player: struct {
+            isPlayer: bool = true,
+            flip: f64 = 1
+        }
+    },
+
+    pub fn init(self: *Entity) void {
+        if (self.fields == .player) {
+            std.log.info("surpsass", .{});
+            self.collider = Rectangle {
+                .x = -4, .y = -3,
+                .w = 8, .h = 3
+            };
+        }
     }
-};
 
-pub const Collider = struct {
-    entity: *Entity, 
-    bounding: Rectangle = .{}
+    pub fn process(self: *Entity, map: *Map, allocator: std.mem.Allocator, delta: f64) !void {  
+        switch (self.fields) {
+            .none => {},
+            .player => | *f | {
+                state.temp_camera.x = self.position.x;
+                state.temp_camera.y = self.position.y;
+
+                var vel: Position = .{};
+
+                var v: f64 = 36;
+
+                if (input.down(.up) > 0) 
+                    vel.y -= v;
+                
+                if (input.down(.down) > 0) 
+                    vel.y += v;
+
+                if (input.down(.left) > 0) {
+                    vel.x -= v;
+                    f.flip = -1;
+                }
+
+                if (input.down(.right) > 0) {
+                    vel.x += v;
+                    f.flip = 1;
+                }
+
+                self.sprite.?.scale.x = extra.lerp(f64, self.sprite.?.scale.x, f.flip, delta*30);
+                self.velocity = vel;
+            }
+        }
+
+        if (self.velocity != null) {
+            var vel: Position = self.velocity.?;
+
+            if (self.collider == null) {
+                vel.x *= delta;
+                vel.y *= delta;
+        
+            } else {
+                var col: Rectangle = .{ 
+                    .x = self.position.x+self.collider.?.x,
+                    .y = self.position.y+self.collider.?.y,
+                    .w = self.collider.?.w,
+                    .h = self.collider.?.h
+                };
+
+                var iter = map.eachChunk(col.expand(chunk_size, chunk_size));
+                while (try iter.nextOrCreate(allocator)) | chunk | {
+                    for (chunk.colliders.toOwnedSlice()) | collider | {
+                        if (collider.uid == self.uid)
+                            continue;
+
+                        try chunk.colliders.append(collider);
+
+                        var collision = col.solveCollision(collider.bounding, vel, delta);
+                        if (collision != null) {
+                            vel = collision.?.velocity;
+                        }
+                    }
+                }
+            }
+
+            self.position.x += vel.x;
+            self.position.y += vel.y;
+
+            if (self.collider != null) {
+                var col: Rectangle = .{ 
+                    .x = self.position.x+self.collider.?.x,
+                    .y = self.position.y+self.collider.?.y,
+                    .w = self.collider.?.w,
+                    .h = self.collider.?.h
+                };
+
+                var iter = map.eachChunk(col);
+
+                while (try iter.nextOrCreate(allocator)) | chunk | {
+                    try chunk.colliders.append(.{
+                        .bounding = col,
+                        .uid = self.uid
+                    });
+                }
+            }
+        }
+    }
 };
 
 pub const Collision = struct {
     normal: Position = .{},
     at: Position = .{},
-    near: f64 = 0
+    near: f64 = 0,
+    velocity: Position = .{}
 };
 
 pub const Chunk = struct {
     index: Index = .{},
     tiles: std.ArrayList(Tile),
-    entities: std.ArrayList(Entity),
-    colliders: std.ArrayList(Collider) = undefined
+    colliders: std.ArrayList(Entity.Collider)
 };
 
 pub const Map = struct {
@@ -530,6 +592,9 @@ pub const Map = struct {
     };
 
     chunks: std.AutoHashMap(Index, Chunk),
+    entities: std.ArrayList(Entity),
+
+    var uid: u32 = 0;
 
     pub fn getChunk(self: *Map, index: Index) callconv(.Inline) ?*Chunk {
         return self.chunks.getPtr(index);
@@ -543,7 +608,7 @@ pub const Map = struct {
             b = Chunk {
                 .index = index,
                 .tiles = std.ArrayList(Tile).init(allocator),
-                .entities = std.ArrayList(Entity).init(allocator)
+                .colliders = std.ArrayList(Entity.Collider).init(allocator)
             };
 
             try self.chunks.put(index, b);
@@ -552,20 +617,98 @@ pub const Map = struct {
         return self.getChunk(index).?;
     }
 
+    pub fn addEntity(self: *Map, ent: Entity, allocator: std.mem.Allocator) !void {
+        var entity = ent;
+        entity.uid = uid;
+        try self.entities.append(entity);
+        uid = uid + 1;
+
+        entity.init();
+
+        if (entity.collider==null) return;
+
+        var col: Rectangle = .{ 
+            .x = entity.position.x+entity.collider.?.x,
+            .y = entity.position.y+entity.collider.?.y,
+            .w = entity.collider.?.w,
+            .h = entity.collider.?.h
+        };
+
+        var iter = self.eachChunk(col);
+
+        while (try iter.nextOrCreate(allocator)) | chunk | {
+            try chunk.colliders.append(.{
+                .bounding = col,
+                .uid = entity.uid
+            });
+        }
+    }
+
+    const ChunkIterator = struct {
+        parent: *Map = undefined,
+        start: Index = .{},
+        end: Index = .{},
+        index: Index = .{},
+
+        pub fn next(self: *ChunkIterator) ?*Chunk {
+            while (self.index.y <= self.end.y) {
+                var chunk = self.parent.getChunk(self.index);
+
+                self.index.x += 1;
+                if (self.index.x > self.end.x) {
+                    self.index.x = self.start.x;
+                    self.index.y += 1;
+                }
+                
+                if (chunk != null)
+                    return chunk;
+            }
+            return null;
+        }
+
+        pub fn nextOrCreate(self: *ChunkIterator, allocator: std.mem.Allocator) !?*Chunk {
+            if (self.index.y > self.end.y) 
+                return null;
+            
+            var chunk = try self.parent.getChunkOrCreate(self.index, allocator);
+
+            self.index.x += 1;
+            if (self.index.x > self.end.x) {
+                self.index.x = self.start.x;
+                self.index.y += 1;
+            }
+        
+            return chunk;
+        }
+    };
+
+    pub fn eachChunk(self: *Map, r: Rectangle) ChunkIterator{
+        var start = (Position {.x=r.x, .y=r.y}).toIndex();
+        return ChunkIterator {
+            .start = start,
+            .end = (Position {.x=r.x+r.w, .y=r.y+r.h}).toIndex(),
+            .index = start,
+            .parent = self
+        };
+    }
+
+    //pub fn deleteEntityRefs() {}
+
     pub fn load(str: []const u8, allocator: std.mem.Allocator) !Map {
         var map = Map {
             .chunks = std.AutoHashMap(Index, Chunk).init(allocator),
+            .entities = std.ArrayList(Entity).init(allocator)
         };
 
         var stream = std.json.TokenStream.init(str);
         const res = try std.json.parse(Proto, &stream, .{
-            .allocator = allocator
+            .allocator = allocator,
+            .ignore_unknown_fields = true
         });
         
         for (res.tiles) | tile | {
             var position = Position {
-                .x = tile[0], 
-                .y = tile[1]
+                .x = tile[0], .y = tile[1]
             };
             
             var chunk = try map.getChunkOrCreate(position.toIndex(), allocator);
@@ -580,9 +723,7 @@ pub const Map = struct {
         }
 
         for (res.entities) | entity | {
-            var chunk = try map.getChunkOrCreate(entity.position.toIndex(), allocator);
-
-            try chunk.entities.append(entity);
+            try map.addEntity(entity, allocator);
         }
 
         return map;

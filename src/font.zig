@@ -1,9 +1,9 @@
 const std = @import("std");
-const main = @import("main.zig");
+const extra = @import("extra.zig");
 
 pub const Character = struct {
-    sprite: main.Rectangle = .{},
-    origin: main.Position  = .{}
+    sprite: extra.Rectangle = .{},
+    origin: extra.Vector    = .{}
 };
 
 pub const Font = struct {
