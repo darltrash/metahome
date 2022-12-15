@@ -10,7 +10,6 @@ const shd   = @import("quad.glsl.zig");
 const extra = @import("extra.zig");
 const input = @import("input.zig");
 const assets = @import("assets.zig");
-const c     = @import("c");
 
 const font  = @import("font.zig");
 
@@ -23,9 +22,23 @@ pub const Sprite = struct {
 };
 
 pub const State = struct {
-    init: fn () (!void)    = undefined,
-    loop: fn (f64) (!void) = undefined
+    init: *const (fn () anyerror!void)    = undefined,
+    loop: *const (fn (f64) anyerror!void) = undefined
 };
+
+var current_state: State = undefined;
+
+pub const States = enum {
+    dialog
+};
+
+pub fn setState(state: States) !void {
+    switch (state) {
+        .dialog => current_state = @import("dialog.zig").state
+    }
+    
+    try current_state.init();
+}
 
 const quad_amount = 2048;
 
@@ -216,6 +229,8 @@ export fn init() void {
     //self.map = try Map.load(assets.map_test, self.allocator);
 
     //state.init() catch unreachable;
+
+    setState(.dialog) catch unreachable;
 }
 
 export fn frame() void {
@@ -232,7 +247,7 @@ export fn frame() void {
 
     current_vertex = 0;
 
-    //state.loop(sapp.frameDuration()) catch unreachable;
+    current_state.loop(sapp.frameDuration()) catch unreachable;
 
     sg.updateBuffer(bind.vertex_buffers[0], sg.asRange(&vertices));
 
