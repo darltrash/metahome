@@ -51,7 +51,7 @@ pub var timer: f64 = 0;
 var current_vertex: usize = 0;
 var vertices: [quad_amount * 36]f32 = undefined;
 
-var real_camera: extra.Vector = .{};
+pub var real_camera: extra.Vector = .{};
 pub var camera: extra.Vector = .{};
 
 pub var allocator: std.mem.Allocator = undefined;
@@ -104,6 +104,18 @@ pub fn render(spr: Sprite) void {
     current_vertex += 1;
 }
 
+pub fn background(color: ?extra.Color) extra.Color {
+    if (color != null)
+        pass_action.colors[0] = .{ .action=.CLEAR, .value=.{ .r=color.?.r, .g=color.?.g, .b=color.?.b, .a=color.?.a } };
+
+    return color orelse extra.Color {
+        .r = pass_action.colors[0].value.r,
+        .g = pass_action.colors[0].value.g,
+        .b = pass_action.colors[0].value.b,
+        .a = pass_action.colors[0].value.a,
+    };
+}
+
 pub fn rect(r: extra.Rectangle, color: extra.Color) void {
     render(
         .{
@@ -115,37 +127,63 @@ pub fn rect(r: extra.Rectangle, color: extra.Color) void {
     );
 }
 
-pub fn print(p: extra.Vector, t: []const u8, end: ?usize, color: extra.Color) !void {
+//pub fn countBreaks() {
+//
+//}
+
+pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: extra.Color, highlight: ?extra.Color) !void {
     if (end != null and end.? == 0)
         return;
 
     var cp: extra.Vector = p;
     var i: usize = 0;
 
+    var h = highlight orelse color;
+    var c = color;
+    var ih: bool = false;
+
     var iter = (try std.unicode.Utf8View.init(t)).iterator();
     while (iter.nextCodepoint()) |code| {
         switch (code) {
             '\n' => {
                 cp.x = p.x;
-                cp.y += 8;
+                cp.y += 9;
+
+                i += 1;
+            },
+
+            '*' => {
+                ih = !ih;
+                if (ih) 
+                    c = h
+                else
+                    c = color;
             },
 
             else => {
                 var e: font.Character = main_font.characters.get(code) orelse .{};
+
+                var word_end = @intToFloat(f64, std.mem.indexOf(u8, t[i..], " ") orelse 0);
+
+                if (cp.x+(word_end*8) > (limit + p.x)) {
+                    cp.x = p.x;
+                    cp.y += 9;
+                }
+
                 var tp = cp;
                 tp.y -= e.origin.y;
                 render(
                     .{
                         .origin = e.sprite, 
                         .position = tp,
-                        .color = color
+                        .color = c
                     }
                 );
                 cp.x += e.sprite.w - e.origin.x;
+
+                i += 1;
             }
         }
-
-        i += 1;
 
         if (end != null and i == end.?)
             return;
@@ -237,17 +275,18 @@ export fn frame() void {
     input.update();
 
     var delta = sapp.frameDuration();
-
     timer += delta;
 
     width = @floatCast(f64, sapp.widthf());
     height = @floatCast(f64, sapp.heightf());
-    camera.z = @max(@floor(@min(width, height) / 200), 1);
+    camera.z = @max(@floor(@min(width, height) / 250), 1);
     real_camera = real_camera.lerp(camera, delta * 16);
 
     current_vertex = 0;
 
-    current_state.loop(sapp.frameDuration()) catch unreachable;
+    current_state.loop(delta) catch unreachable;
+
+    //rect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});
 
     sg.updateBuffer(bind.vertex_buffers[0], sg.asRange(&vertices));
 
@@ -288,8 +327,8 @@ pub fn main() void {
         .frame_cb = frame,
         .cleanup_cb = cleanup,
         .event_cb = event,
-        .width = 800,
-        .height = 600,
+        .width = 815,
+        .height = 550,
         .icon = .{
             .sokol_default = true,
         },

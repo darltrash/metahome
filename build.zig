@@ -32,7 +32,6 @@ pub fn build(b: *std.build.Builder) void {
     });
 
     exe.addPackagePath("c", "lib/c/c.zig");
-    exe.addPackagePath("ini", "lib/ini.zig");
     exe.addPackagePath("sokol", "lib/sokol-zig/src/sokol/sokol.zig");
     exe.addPackagePath("assets", "assets/assets.zig");
 
