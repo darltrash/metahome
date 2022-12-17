@@ -59,7 +59,7 @@ fn advance() void {
     }
 }
 
-fn loadScript(source: []const u8) !void {
+pub fn loadScript(source: []const u8) !void {
     var tokens = std.json.TokenStream.init(source);
     instructions = try std.json.parse([]Instruction, &tokens, .{ .allocator = main.allocator });
     at = 0;
@@ -67,7 +67,7 @@ fn loadScript(source: []const u8) !void {
     advance();
 }
 
-var active: bool = false;
+pub var active: bool = false;
 var position: f64 = 1;
 
 fn init() !void {
@@ -87,7 +87,9 @@ fn frame(r: extra.Rectangle) void {
 
 var gug: bool = true;
 
-fn loop(delta: f64) !void {
+const highlight: extra.Color = .{.r=0.439, .g=0.682, .b=1, .a=1};
+
+pub fn loop(delta: f64) !void {
     //_ = main.background(.{.r=0.439, .g=0.682, .b=1, .a=1});
 
     cursor += delta * 32;
@@ -97,15 +99,10 @@ fn loop(delta: f64) !void {
 
     var i = @floatToInt(usize, cursor);
 
-    if (main.timer > 4 and gug) {
-        gug = false;
-        try loadScript(@embedFile("script.json"));
-    }
-
-    var p = position * (main.height / main.real_camera.z / 2);
-
     if (position > 0.99)
         return;
+
+    var p = position * (main.height / main.real_camera.z / 2);
 
     if (options == null) {
         frame(.{ .x=-125+8, .y=p+(125-76), .w=250-16, .h=80-12});
@@ -126,28 +123,20 @@ fn loop(delta: f64) !void {
 
         selected = @mod(selected, @intCast(i8, options.?.len));
 
-        try main.print(.{
-            .x=-125+16, .y=p+(125-60)
-        }, text, i, 125-26, .{}, .{.r=0.439, .g=0.682, .b=1, .a=1});
+        try main.print(.{ .x=-125+16, .y=p+(125-60) }, text, i, 125-26, .{}, highlight);
 
         var k: usize = 0;
         for (options.?) | option | {
             var y = p+(125-60)+@intToFloat(f64, k*13);
 
-            //main.rect(.{.x=8, .y=y-8, .w=125-16, .h=11}, .{.r=1, .g=1, .b=1, .a=0.4});
-
-            try main.print(.{
-                .x=16, .y=y
-            }, option.text, i, 125-26, .{}, .{.r=0.439, .g=0.682, .b=1, .a=1});
+            try main.print(.{ .x=16, .y=y }, option.text, i, 125-26, .{}, highlight);
 
             k += 1;
         }
 
         selected_float = extra.lerp(f64, selected_float, @intToFloat(f64, selected*13), delta * 16);
 
-        try main.print(.{
-            .x=125-26, .y=p+(125-60)+selected_float
-        }, "<", i, 125-26, .{.a=0.4}, null);
+        try main.print(.{ .x=125-20, .y=p+(125-60)+selected_float }, "<", i, 125-26, .{}, null);
     }
 
     if (i > text.len and input.down(.action) > 0) {

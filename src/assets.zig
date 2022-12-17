@@ -2,56 +2,54 @@ const assets = @import("assets");
 
 const std = @import("std");
 const sg  = @import("sokol").gfx;
-const c   = @import("c");
+const png = @import("zpng.zig");
 
 pub usingnamespace assets;
 
+// TODO: MOVE TO ZPNG AND DELETE AS MUCH C DEPS
+//       AS POSSIBLE!
+
 pub const Image = struct { 
+    const Pixel = packed struct { 
+        r: u8, g: u8, b: u8, a: u8
+    };
+
     w: u32 = 0, h: u32 = 0, 
-    handle: sg.Image,
+    handle: sg.Image = undefined,
 
-    pub fn new(raw: []const u8) !Image {
-        var a: Image = undefined;
-
-        var w: c_int = 0;
-        var h: c_int = 0;
-
-        if (c.stbi_info_from_memory(raw.ptr, @intCast(c_int, raw.len), &w, &h, null) == 0)
-            return error.NotPngFile;
-
-        a.w = @intCast(u32, w);
-        a.h = @intCast(u32, h);
-
-        if (a.w <= 0 or a.h <= 0) 
-            return error.NoPixels;
-
-        if (c.stbi_is_16_bit_from_memory(raw.ptr, @intCast(c_int, raw.len)) != 0)
-            return error.InvalidFormat;
-
-        const bits_per_channel = 8;
-        const channel_count = 4;
-
-        const image_data = c.stbi_load_from_memory(raw.ptr, @intCast(c_int, raw.len), &w, &h, null, channel_count);
-
-        if (image_data == null) 
-            return error.NoMem;
-
-        var img = sg.ImageDesc {
-            .width  = @intCast(i32, a.w), 
-            .height = @intCast(i32, a.h),
+    pub fn new(raw: []const u8, allocator: std.mem.Allocator) !Image {
+        var b = std.io.fixedBufferStream(raw);
+        var i = try png.Image.read(allocator, b.reader());
+        
+        var o: Image = .{
+            .w = i.width,
+            .h = i.height
         };
 
-        var pitch = a.w * bits_per_channel * channel_count / 8;
+        var img = sg.ImageDesc {
+            .width  = @intCast(i32, i.width ), 
+            .height = @intCast(i32, i.height)
+        };
 
-        img.data.subimage[0][0] = sg.asRange(image_data[0 .. a.h * pitch]);
-        a.handle = sg.makeImage(img);
+        var pixels = std.ArrayList(Pixel).init(allocator);
+        for (i.pixels) | origin | {
+            try pixels.append(.{
+                .r = @floatToInt(u8, (@intToFloat(f64, origin[0])/65535) * 255),
+                .g = @floatToInt(u8, (@intToFloat(f64, origin[1])/65535) * 255),
+                .b = @floatToInt(u8, (@intToFloat(f64, origin[2])/65535) * 255),
+                .a = @floatToInt(u8, (@intToFloat(f64, origin[3])/65535) * 255)
+            });
+        }
 
-        std.c.free(image_data);
+        img.data.subimage[0][0] = sg.asRange(pixels.toOwnedSlice());
+        o.handle = sg.makeImage(img);
 
-        return a;
+        i.deinit(allocator);
+        
+        return o;
     }
 
-    pub fn fromFile(comptime file: []const u8) !Image {
-        return new(@field(assets, file));
+    pub fn fromFile(comptime file: []const u8, allocator: std.mem.Allocator) !Image {
+        return new(@field(assets, file), allocator);
     }
 };

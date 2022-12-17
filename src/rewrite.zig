@@ -1,5 +1,5 @@
 const std   = @import("std");
-const DEBUGMODE = @import("builtin").mode == .Debug;
+pub const DEBUGMODE = @import("builtin").mode == .Debug;
 
 const sg    = @import("sokol").gfx;
 const sapp  = @import("sokol").app;
@@ -29,12 +29,12 @@ pub const State = struct {
 var current_state: State = undefined;
 
 pub const States = enum {
-    dialog
+    main
 };
 
 pub fn setState(state: States) !void {
     switch (state) {
-        .dialog => current_state = @import("dialog.zig").state
+        .main => current_state = @import("world.zig").state
     }
     
     try current_state.init();
@@ -127,9 +127,13 @@ pub fn rect(r: extra.Rectangle, color: extra.Color) void {
     );
 }
 
-//pub fn countBreaks() {
-//
-//}
+pub fn outlineRect(r: extra.Rectangle, color: extra.Color) void {
+    rect(.{.x=r.x, .y=r.y-1,   .w=r.w, .h=1}, color);
+    rect(.{.x=r.x, .y=r.y+r.h, .w=r.w, .h=1}, color);
+
+    rect(.{.x=r.x-1,   .y=r.y, .w=1, .h=r.h}, color);
+    rect(.{.x=r.x+r.w, .y=r.y, .w=1, .h=r.h}, color);
+}
 
 pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: extra.Color, highlight: ?extra.Color) !void {
     if (end != null and end.? == 0)
@@ -172,6 +176,7 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
 
                 var tp = cp;
                 tp.y -= e.origin.y;
+                tp.x -= e.origin.x;
                 render(
                     .{
                         .origin = e.sprite, 
@@ -200,11 +205,13 @@ export fn init() void {
 
     input.setup(allocator) catch undefined;
 
-    var sdtx_desc: st.Desc = .{};
-    sdtx_desc.fonts[0] = st.fontZ1013();
-    st.setup(sdtx_desc);
+    if (comptime DEBUGMODE) {
+        var sdtx_desc: st.Desc = .{};
+        sdtx_desc.fonts[0] = st.fontZ1013();
+        st.setup(sdtx_desc);
+    }
 
-    atlas = assets.Image.fromFile("atl_main.png") catch undefined;
+    atlas = assets.Image.fromFile("atl_main.png", allocator) catch undefined;
     bind.fs_images[shd.SLOT_tex] = atlas.handle;
 
     main_font = font.generate(allocator) catch undefined;
@@ -268,7 +275,7 @@ export fn init() void {
 
     //state.init() catch unreachable;
 
-    setState(.dialog) catch unreachable;
+    setState(.main) catch unreachable;
 }
 
 export fn frame() void {
@@ -286,7 +293,8 @@ export fn frame() void {
 
     current_state.loop(delta) catch unreachable;
 
-    //rect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});
+    if (comptime DEBUGMODE)
+        outlineRect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});
 
     sg.updateBuffer(bind.vertex_buffers[0], sg.asRange(&vertices));
 
