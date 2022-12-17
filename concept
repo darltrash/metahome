@@ -19,4 +19,5 @@ Rendering:
     window size, and ensures that the main game elements are
     always visible.
 
- 
+    Each tile is chunked to discriminate non-visible tiles
+    without having to iterate through each tile.

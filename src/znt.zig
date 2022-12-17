@@ -93,7 +93,7 @@ pub fn Scene(comptime EntityType: type, comptime opts: SceneOptions) type {
                 fields[i + 1] = .{
                     .name = field.name,
                     .field_type = ?field.field_type,
-                    .default_value = @as(??field.field_type, @as(?field.field_type, null)),
+                    .default_value = undefined,
                     .is_comptime = false,
                     .alignment = @alignOf(?field.field_type),
                 };
@@ -171,14 +171,12 @@ pub fn Scene(comptime EntityType: type, comptime opts: SceneOptions) type {
                     });
                 }
             }
-
-            const eid = ei.eid; // HACK: Workaround for stage1 bug
-            try self.id_map.put(self.allocator, eid, addr);
-            return eid;
+            try self.id_map.put(self.allocator, ei.eid, addr);
+            return ei.eid;
         }
 
         fn genEid(self: *Self) EntityId {
-            var id = self.rng.random.int(EntityId);
+            var id = self.rng.random().int(EntityId);
             // Set UUID variant and version
             id &= ~(@as(EntityId, 0xc0_00_f0) << (6 * 8));
             id |= @as(EntityId, 0x80_00_40) << (6 * 8);
@@ -321,7 +319,7 @@ fn DataStore(comptime T: type) type {
         }
 
         // HACK: noinline is a workaround for a compiler bug - see comment on "6 components" test
-        pub noinline fn add(self: *Self, allocator: *std.mem.Allocator, value: T) std.mem.Allocator.Error!Addr {
+        pub noinline fn add(self: *Self, allocator: std.mem.Allocator, value: T) std.mem.Allocator.Error!Addr {
             if (self.free != invalid_addr) {
                 const addr = self.free;
                 self.free = self.entries.items[addr].free;

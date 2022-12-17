@@ -13,7 +13,7 @@ f:close()
         height = level.pxHei,
         uid = level.uid,
         tiles = {},
-        entities = {}
+        --entities = {}
     }
 
     for _, layer in ipairs(level.layerInstances) do
@@ -25,7 +25,7 @@ f:close()
                     layer.__gridSize, layer.__gridSize
                 })
             end
-        elseif layer.__type == "Entities" then
+        elseif layer.__type == "Entities" and false then
             for uid, entity in ipairs(layer.entityInstances) do
                 local offset = {
                     x = entity.__pivot[1] * entity.width,

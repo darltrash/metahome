@@ -18,7 +18,8 @@ pub const Sprite = struct {
     position: extra.Vector = .{},
     offset: extra.Vector = .{},
     color: extra.Color = .{},
-    scale: extra.Vector = .{.x=1, .y=1}
+    scale: extra.Vector = .{.x=1, .y=1},
+    wobble: f64 = 0
 };
 
 pub const State = struct {
@@ -62,6 +63,12 @@ var pip: sg.Pipeline = .{};
 var pass_action: sg.PassAction = .{};
 var text_pass_action: sg.PassAction = .{};
 
+fn noise(mag: f64, offset: f64) f32 {
+    if (mag == 0)
+        return 0;
+    return @floatCast(f32, mag * (0.5 - assets.noise(.{.x=offset+timer, .y=(offset*0.5)+timer})));
+}
+
 pub fn render(spr: Sprite) void {
     // Horrid, I know. 
     current_vertex %= quad_amount;
@@ -76,7 +83,7 @@ pub fn render(spr: Sprite) void {
     };
 
     n = n.visible(width, height, real_camera) orelse return;
-
+    
     // [Pos, Size] to [Corner A, Corner B]
     n.w += n.x;
     n.h += n.y;
@@ -92,11 +99,13 @@ pub fn render(spr: Sprite) void {
     u.w += u.x;
     u.h += u.y;
     
+    var w = sprite.wobble;
+
     const tmp_vertices = [_]f32 { // i hate this coordinate system :P
-        @floatCast(f32, n.x), -@floatCast(f32, n.h), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.x), @floatCast(f32, u.h),
-        @floatCast(f32, n.w), -@floatCast(f32, n.h), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.w), @floatCast(f32, u.h),
-        @floatCast(f32, n.w), -@floatCast(f32, n.y), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.w), @floatCast(f32, u.y),
-        @floatCast(f32, n.x), -@floatCast(f32, n.y), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.x), @floatCast(f32, u.y)
+        @floatCast(f32, n.x)+noise(w/width,  2+spr.position.x*5), -@floatCast(f32, n.h)+noise(w/height,  2+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.x), @floatCast(f32, u.h),
+        @floatCast(f32, n.w)+noise(w/width,  5+spr.position.x*5), -@floatCast(f32, n.h)+noise(w/height,  5+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.w), @floatCast(f32, u.h),
+        @floatCast(f32, n.w)+noise(w/width,  7+spr.position.x*5), -@floatCast(f32, n.y)+noise(w/height,  7+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.w), @floatCast(f32, u.y),
+        @floatCast(f32, n.x)+noise(w/width, -4+spr.position.x*5), -@floatCast(f32, n.y)+noise(w/height, -4+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.x), @floatCast(f32, u.y)
     };
 
     std.mem.copy(f32, vertices[(current_vertex * 36)..], &tmp_vertices);
@@ -122,7 +131,7 @@ pub fn rect(r: extra.Rectangle, color: extra.Color) void {
             .origin = .{.x=0, .y=0, .w=1, .h=1}, 
             .position = .{.x=r.x, .y=r.y}, 
             .color = color, 
-            .scale = .{.x=r.w, .y=r.h}
+            .scale = .{.x=r.w, .y=r.h},
         }
     );
 }

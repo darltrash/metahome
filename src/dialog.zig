@@ -85,8 +85,6 @@ fn frame(r: extra.Rectangle) void {
     main.rect(.{.x=r.x, .y=r.y, .w=r.w+4, .h=r.h+4}, .{.r=0, .g=0, .b=0, .a=0.6});
 }
 
-var gug: bool = true;
-
 const highlight: extra.Color = .{.r=0.439, .g=0.682, .b=1, .a=1};
 
 pub fn loop(delta: f64) !void {

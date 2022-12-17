@@ -3,6 +3,7 @@ const assets = @import("assets");
 const std = @import("std");
 const sg  = @import("sokol").gfx;
 const png = @import("zpng.zig");
+const extra = @import("extra.zig");
 
 pub usingnamespace assets;
 
@@ -53,3 +54,21 @@ pub const Image = struct {
         return new(@field(assets, file), allocator);
     }
 };
+
+pub fn noise(at: extra.Vector) f64 {
+    var a = at;
+    a.x = @mod(a.x, 256);
+    a.y = @mod(a.y, 256);
+
+    var x_start = @rem(@floatToInt(usize, @floor(a.x)), 256);
+    var x_end   = @rem(@floatToInt(usize, @ceil (a.x)), 256);
+    var y_start = @rem(@floatToInt(usize, @floor(a.y)), 256);
+    var y_end   = @rem(@floatToInt(usize, @ceil (a.y)), 256);
+ 
+    return extra.lerp(
+        f64, 
+        @intToFloat(f64, assets.@"noise.bin"[y_start * 256 + x_start])/255,
+        @intToFloat(f64, assets.@"noise.bin"[y_end   * 256 + x_end  ])/255,
+        ((a.x - @intToFloat(f64, x_start)) + (a.y - @intToFloat(f64, y_start))) / 2
+    );
+}
