@@ -1,4 +1,7 @@
 /* quad vertex shader */
+@header const e = @import("extra.zig")
+@ctype vec4 e.Color
+
 @vs vs
 in vec4 vx_position;
 in vec4 vx_color;
@@ -18,12 +21,23 @@ void main() {
 @fs fs
 uniform sampler2D tex;
 
+uniform vs_uniforms {
+    vec4 color_a;
+    vec4 color_b;
+    float strength;
+};
+
 in vec4 color;
 in vec2 uv;
 out vec4 frag_color;
 
+float luma(vec4 color) {
+    return dot(color.rgb, vec3(0.299, 0.587, 0.114));
+}
+
 void main() {
-    frag_color = texture(tex, uv) * color;
+    vec4 c = texture(tex, uv) * color;
+    frag_color = mix(c, mix(color_a, color_b, luma(c)), strength);
 }
 @end
 

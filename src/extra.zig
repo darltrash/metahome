@@ -21,11 +21,20 @@ pub fn roundTo(comptime T: type, a: T, to: T) T {
     return @round(a*to)/to;
 }
 
-pub const Color = struct {
+pub const Color = extern struct {
     r: f32 = 1, 
     g: f32 = 1,
     b: f32 = 1, 
-    a: f32 = 1
+    a: f32 = 1,
+
+    pub fn fromHex(n: u32) Color {
+        return .{
+            .r = @intToFloat(f32, (n >> 24) & 0xFF) / 255,
+            .g = @intToFloat(f32, (n >> 16) & 0xFF) / 255,
+            .b = @intToFloat(f32, (n >> 8 ) & 0xFF) / 255,
+            .a = @intToFloat(f32,  n        & 0xFF) / 255
+        };
+    }
 };
 
 pub const Vector = struct {

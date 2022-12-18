@@ -147,6 +147,14 @@ fn init() !void {
     //    .controller = .player
     //});
 
+    //main.color_a = .{
+    //    .r=214/255, .g=82/255, .b=1
+    //};
+    //main.color_b = extra.Color.fromHex(0x6f66ffff);
+    //main.color_a = extra.Color.fromHex(0xd652ffff);
+    //
+    //main.filter = 0.5;
+
     map = try World.fromJSON(assets.@"map_test.json", main.allocator);
 
     try dialog.loadScript(@embedFile("script.json"));

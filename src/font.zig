@@ -7,12 +7,14 @@ pub const Character = struct {
 };
 
 pub const Font = struct {
-    characters: std.AutoHashMap(u32, Character)
+    characters: std.AutoHashMap(u32, Character),
+    unknown: Character
 };
 
 pub fn generate(alloc: std.mem.Allocator) !Font {
     var o = Font {
-        .characters = std.AutoHashMap(u32, Character).init(alloc)
+        .characters = std.AutoHashMap(u32, Character).init(alloc),
+        .unknown = .{.sprite = .{.x=42, .y=200, .w=7, .h=9}, .origin = .{.x=1, .y=8}} // ?
     };
 
     try o.characters.put('0', .{.sprite = .{.x=175, .y=190, .w=7, .h=9}, .origin = .{.x=1, .y=8}});

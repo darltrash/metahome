@@ -63,6 +63,10 @@ var pip: sg.Pipeline = .{};
 var pass_action: sg.PassAction = .{};
 var text_pass_action: sg.PassAction = .{};
 
+pub var color_a: extra.Color = .{};
+pub var color_b: extra.Color = .{};
+pub var filter: f32 = 0;
+
 fn noise(mag: f64, offset: f64) f32 {
     if (mag == 0)
         return 0;
@@ -151,6 +155,8 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
     var cp: extra.Vector = p;
     var i: usize = 0;
 
+    var wobbly: bool = false;
+    var wobble: f64 = 0;
     var h = highlight orelse color;
     var c = color;
     var ih: bool = false;
@@ -165,16 +171,23 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
                 i += 1;
             },
 
+            '\t' => {
+                cp.x += 8 * 4;
+                i += 1;
+            },
+
             '*' => {
                 ih = !ih;
-                if (ih) 
-                    c = h
-                else
-                    c = color;
+                c = if (ih) h else color;
+            },
+
+            '~' => {
+                wobbly = !wobbly;
+                wobble = if (wobbly) 1 else 0;
             },
 
             else => {
-                var e: font.Character = main_font.characters.get(code) orelse .{};
+                var e: font.Character = main_font.characters.get(code) orelse main_font.unknown;
 
                 var word_end = @intToFloat(f64, std.mem.indexOf(u8, t[i..], " ") orelse 0);
 
@@ -186,13 +199,16 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
                 var tp = cp;
                 tp.y -= e.origin.y;
                 tp.x -= e.origin.x;
-                render(
-                    .{
-                        .origin = e.sprite, 
-                        .position = tp,
-                        .color = c
-                    }
-                );
+                tp.y -= @sin((timer*5) + tp.x) * wobble;
+                
+                if (code != ' ')
+                    render(
+                        .{
+                            .origin = e.sprite, 
+                            .position = tp,
+                            .color = c
+                        }
+                    );
                 cp.x += e.sprite.w - e.origin.x;
 
                 i += 1;
@@ -302,14 +318,23 @@ export fn frame() void {
 
     current_state.loop(delta) catch unreachable;
 
-    if (comptime DEBUGMODE)
-        outlineRect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});
+    //if (comptime DEBUGMODE)
+    //    outlineRect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});
 
+    var uniforms: shd.VsUniforms = .{
+        .color_a = color_a,
+        .color_b = color_b,
+        .strength = filter
+    };
+    
     sg.updateBuffer(bind.vertex_buffers[0], sg.asRange(&vertices));
 
     sg.beginDefaultPass(pass_action, sapp.width(), sapp.height());
     sg.applyPipeline(pip);
     sg.applyBindings(bind);
+
+    sg.applyUniforms(sg.ShaderStage.FS, 0, sg.asRange(&uniforms));
+
     sg.draw(0, @intCast(u32, current_vertex) * 6, 1);
     sg.endPass();
 
@@ -349,6 +374,6 @@ pub fn main() void {
         .icon = .{
             .sokol_default = true,
         },
-        .window_title = "quad.zig"
+        .window_title = "metahome"
     });
 }
