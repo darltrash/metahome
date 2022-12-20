@@ -4,6 +4,7 @@ const std = @import("std");
 pub const @"atl_main.png" = @embedFile("atl_main.png");
 pub const @"map_test.json" = @embedFile("map_test.json");
 pub const @"noise.bin" = @embedFile("noise.bin");
+pub const @"mus_await.mp3" = @embedFile("mus_await.mp3");
 
 //fn encode() []const u8 {
 //    var alloc = std.heap.HeapAllocator.allocator();

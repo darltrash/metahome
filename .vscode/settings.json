@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "stb_vorbis.h": "c",
+        "minivorbis.h": "c"
+    }
+}

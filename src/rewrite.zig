@@ -12,6 +12,7 @@ const input = @import("input.zig");
 const assets = @import("assets.zig");
 
 const font  = @import("font.zig");
+const audio = @import("audio.zig");
 
 pub const Sprite = struct { 
     origin: extra.Rectangle = .{},
@@ -230,6 +231,8 @@ export fn init() void {
 
     input.setup(allocator) catch undefined;
 
+    audio.init(allocator) catch unreachable;
+
     if (comptime DEBUGMODE) {
         var sdtx_desc: st.Desc = .{};
         sdtx_desc.fonts[0] = st.fontZ1013();
@@ -346,6 +349,8 @@ export fn frame() void {
         st.print("Quads: {}/{}", .{current_vertex, quad_amount});
         st.crlf();
         st.print("Camera: [{d:.1}, {d:.1}, {d:.1}]", .{real_camera.x, real_camera.y, real_camera.z});
+        st.crlf();
+        st.print("Sources: {}", .{audio.sources.items.len});
 
         sg.beginDefaultPass(text_pass_action, sapp.width(), sapp.height());
         st.draw();

@@ -17,6 +17,10 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     
+    exe.addCSourceFile("lib/c/meta.c", &[_][]u8 {""});
+    exe.addPackagePath("c", "lib/c/c.zig");
+    exe.addIncludePath("lib/c");
+
     exe.linkLibrary(sokol_build);
     exe.addPackagePath("sokol", "lib/sokol-zig/src/sokol/sokol.zig");
     exe.addPackagePath("assets", "assets/assets.zig");
