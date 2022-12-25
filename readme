@@ -24,7 +24,7 @@ REQUIREMENTS:
             https://github.com/ziglang/zig/issues/10836
 
     All:
-        - Zig 0.10.0
+        - Zig 0.11.0 
         - a lot of love and patience :)
 
     -- NOTE --
@@ -54,7 +54,7 @@ HOW TO BUILD AND RUN:
         - the binary will be at zig-out/bin/metahome :)
 
         For cross-compiling, you can use the "-Dtarget=" flag for Zig:
-            https://ziglang.org/documentation/0.10.0/#Targets
+            https://ziglang.org/documentation/master/#Targets
 
 DEVELOPMENT PHILOSOPHY:
     I have been struggling with ADHD for a long while and i have wanted to follow a programming philosophy 

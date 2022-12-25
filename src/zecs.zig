@@ -111,8 +111,8 @@ pub fn World(comptime RawEntity: type) type {
                 entity: usize,
                 world: *This,
 
-                pub fn getPointer(self: Instance, comptime what: []const u8) *@TypeOf(@field(Entity, what)) {
-                    var i = self.world.list.items(comptime std.meta.stringToEnum(FieldEnum, what));
+                pub fn getPointer(self: Instance, comptime what: FieldEnum) *anyopaque {
+                    var i = self.world.list.items(what);
                     return &(i[self.entity] orelse unreachable);
                 }
             };
@@ -135,13 +135,11 @@ pub fn World(comptime RawEntity: type) type {
             }
         };
 
-        const Fields = std.meta.Tuple(&.{ FieldEnum, FieldEnum });
-
-        pub fn filter(self: *This, comptime fields: Fields) Filter {
+        pub fn filter(self: *This, comptime fields: []FieldEnum) Filter {
             var check: u64 = 0;
 
-            comptime for (std.meta.fields(fields)) | field | {
-                check ^= (-1 ^ check) & (@as(1, u64) << @enumToInt(std.meta.stringToEnum(FieldEnum, field.name)));
+            comptime for (fields) | field | {
+                check ^= (-1 ^ check) & (@as(1, u64) << @enumToInt(field));
             };
 
             return Filter {

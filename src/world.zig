@@ -168,8 +168,8 @@ fn loop(delta: f64) !void {
 
     var filter = scene.filter(.{.position, .velocity});
     while (filter.iter()) | inst | {
-        var pos = inst.getPointer("position");
-        var vel = inst.getPointer("velocity");
+        var pos = inst.getPointer(.position);
+        var vel = inst.getPointer(.velocity);
 
         pos.* = pos.add(vel.mul_f64(delta));
     }
