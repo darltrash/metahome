@@ -445,7 +445,6 @@ const ChunkType = blk: {
     }
 
     break :blk @Type(.{ .Enum = .{
-        .layout = .Auto,
         .tag_type = u32,
         .fields = &fields,
         .decls = &.{},

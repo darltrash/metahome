@@ -4,16 +4,8 @@ const main = @import("rewrite.zig");
 const input = @import("input.zig");
 const dialog = @import("dialog.zig");
 const assets = @import("assets.zig");
-const zecs = @import("zecs.zig");
+const znt = @import("znt.zig");
 const chunk_size = 8 * 8;
-
-const Scene = zecs.World(struct {
-    sprite:   main.Sprite,
-    position: extra.Vector,
-    velocity: extra.Vector
-});
-
-var scene: Scene = undefined;
 
 const Index = struct {
     x: i16 = 0, 
@@ -130,25 +122,30 @@ const World = struct {
 
 var map: World = undefined;
 
+const Scene = znt.Scene(struct {
+    sprite:   main.Sprite,
+    position: extra.Vector,
+    velocity: extra.Vector,
+    camera_focus: void
+}, .{});
+
+var scene: Scene = undefined;
+
 fn init() !void {
     map = try World.fromJSON(assets.@"map_test.json", main.allocator);
 
-    try dialog.loadScript(@embedFile("script.json"));
-
     scene = Scene.init(main.allocator);
-    _ = try scene.addEntity(.{
+    _ = try scene.add(.{
         .position = .{.x=0, .y=0},
-        .velocity = .{.x=0, .y=0}
+        .velocity = .{.x=5, .y=5},
+        .sprite = .{
+            .origin = .{
+                .x=112, .y=0,
+                .w=24,  .h=16
+            }
+        },
+        .camera_focus = {}
     });
-
-    //registry = ecs.Registry.init(main.allocator);
-    //var ent = registry.create();
-    //std.log.info("{}", .{ent});
-    //registry.add(ent, extra.Vector { .x=3 });
-    //registry.add(ent, Position {});
-    //registry.add(ent, Sprite {
-    //    .origin = .{ .x=8, .y=8, .w=8, .h=8  }
-    //});
 }
 
 fn loop(delta: f64) !void {
@@ -166,12 +163,29 @@ fn loop(delta: f64) !void {
         }
     }
 
-    var filter = scene.filter(.{.position, .velocity});
-    while (filter.iter()) | inst | {
-        var pos = inst.getPointer(.position);
-        var vel = inst.getPointer(.velocity);
+    {
+        var ents = scene.iter(&.{ .position, .velocity });
+        while (ents.next()) | ent | {
+            ent.position.* = ent.position.add(ent.velocity.mul_f64(delta));
+        }
+    }
 
-        pos.* = pos.add(vel.mul_f64(delta));
+    {
+        var ents = scene.iter(&.{ .sprite });
+        while (ents.next()) | ent | {
+            var spr = ent.sprite.*;
+            var pos = scene.getOne(.position, ent.id);
+            if (pos != null) 
+                spr.position = spr.position.add(pos.?.*);
+            main.render(spr);
+        }
+    }
+
+    {
+        var ents = scene.iter(&.{ .camera_focus, .position });
+        while (ents.next()) | ent | {
+            main.camera = ent.position.*;
+        }
     }
 
     try dialog.loop(delta);

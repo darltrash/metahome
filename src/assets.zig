@@ -42,7 +42,7 @@ pub const Image = struct {
             });
         }
 
-        img.data.subimage[0][0] = sg.asRange(pixels.toOwnedSlice());
+        img.data.subimage[0][0] = sg.asRange(pixels.toOwnedSlice() catch unreachable);
         o.handle = sg.makeImage(img);
 
         i.deinit(allocator);
