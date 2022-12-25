@@ -2,6 +2,8 @@ const std = @import("std");
 const extra = @import("extra.zig");
 const main = @import("rewrite.zig");
 const input = @import("input.zig");
+const audio = @import("audio.zig");
+const assets = @import("assets.zig");
 
 var at: usize = 0;
 var cursor: f64 = 0;
@@ -91,11 +93,17 @@ fn frame(r: extra.Rectangle) void {
 }
 
 const highlight: extra.Color = .{.r=0.439, .g=0.682, .b=1, .a=1};
+var cursor_int: usize = 0;
 
 pub fn loop(delta: f64) !void {
     //_ = main.background(.{.r=0.439, .g=0.682, .b=1, .a=1});
 
     cursor += delta * 32;
+
+    var this_cursor_int = @floatToInt(usize, cursor);
+    if (this_cursor_int != cursor_int) {
+        cursor_int = this_cursor_int;
+    }
 
     var f: f64 = if (active) 0 else 1;
     position = extra.lerp(f64, position, f, delta*8);

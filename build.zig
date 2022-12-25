@@ -1,5 +1,6 @@
 const std = @import("std");
 const sokol = @import("lib/sokol-zig/build.zig");
+//const zig_ecs = @import("lib/zig-ecs/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
     const target = b.standardTargetOptions(.{});
@@ -8,7 +9,8 @@ pub fn build(b: *std.build.Builder) void {
     var config: sokol.Config = .{};
     if (target.isLinux()) {
         config.backend = .gles2;
-        config.use_egl = true;
+        config.force_egl = true;
+        //config.enable_wayland = true;
     }
 
     const sokol_build = sokol.buildSokol(b, target, mode, config, "lib/sokol-zig/");
@@ -20,6 +22,9 @@ pub fn build(b: *std.build.Builder) void {
     exe.addCSourceFile("lib/c/meta.c", &[_][]u8 {""});
     exe.addPackagePath("c", "lib/c/c.zig");
     exe.addIncludePath("lib/c");
+
+    //exe.addPackage(zig_ecs.getPackage("lib/zig-ecs/"));
+    //exe.addPackagePath("ecs", "lib/zig-ecs/src/ecs.zig");
 
     exe.linkLibrary(sokol_build);
     exe.addPackagePath("sokol", "lib/sokol-zig/src/sokol/sokol.zig");

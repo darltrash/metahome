@@ -4,22 +4,16 @@ const main = @import("rewrite.zig");
 const input = @import("input.zig");
 const dialog = @import("dialog.zig");
 const assets = @import("assets.zig");
-//const znt = @import("znt.zig");
-
-const Controller = enum {
-    player
-};
-
-//const Scene = znt.Scene(struct {
-//    sprite: main.Sprite,
-//    position: extra.Vector,
-//    velocity: extra.Vector,
-//    controller: Controller
-//}, .{});
-//
-//var scene: Scene = undefined;
-
+const zecs = @import("zecs.zig");
 const chunk_size = 8 * 8;
+
+const Scene = zecs.World(struct {
+    sprite:   main.Sprite,
+    position: extra.Vector,
+    velocity: extra.Vector
+});
+
+var scene: Scene = undefined;
 
 const Index = struct {
     x: i16 = 0, 
@@ -137,35 +131,27 @@ const World = struct {
 var map: World = undefined;
 
 fn init() !void {
-    //scene = Scene.init(main.allocator);
-    //_ = try scene.add(.{ 
-    //    .position = .{}, 
-    //    .velocity = .{}, 
-    //    .sprite = .{
-    //        .origin = .{ .x=56, .y=32, .w=16, .h=16 }
-    //    },
-    //    .controller = .player
-    //});
-
-    //main.color_a = .{
-    //    .r=214/255, .g=82/255, .b=1
-    //};
-    //main.color_b = extra.Color.fromHex(0x6f66ffff);
-    //main.color_a = extra.Color.fromHex(0xd652ffff);
-    //
-    //main.filter = 0.5;
-
     map = try World.fromJSON(assets.@"map_test.json", main.allocator);
 
     try dialog.loadScript(@embedFile("script.json"));
+
+    scene = Scene.init(main.allocator);
+    _ = try scene.addEntity(.{
+        .position = .{.x=0, .y=0},
+        .velocity = .{.x=0, .y=0}
+    });
+
+    //registry = ecs.Registry.init(main.allocator);
+    //var ent = registry.create();
+    //std.log.info("{}", .{ent});
+    //registry.add(ent, extra.Vector { .x=3 });
+    //registry.add(ent, Position {});
+    //registry.add(ent, Sprite {
+    //    .origin = .{ .x=8, .y=8, .w=8, .h=8  }
+    //});
 }
 
 fn loop(delta: f64) !void {
-    //var it = scene.iter(&.{.position, .sprite});
-    //while (it.next()) |ent| {
-    //    main.render(ent.sprite.*);
-    //}
-
     var cam: extra.Rectangle = .{
         .x = main.real_camera.x - (main.width  / main.real_camera.z / 2), 
         .y = main.real_camera.y - (main.height / main.real_camera.z / 2),
@@ -180,6 +166,13 @@ fn loop(delta: f64) !void {
         }
     }
 
+    var filter = scene.filter(.{.position, .velocity});
+    while (filter.iter()) | inst | {
+        var pos = inst.getPointer("position");
+        var vel = inst.getPointer("velocity");
+
+        pos.* = pos.add(vel.mul_f64(delta));
+    }
 
     try dialog.loop(delta);
 }

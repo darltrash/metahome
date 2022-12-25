@@ -48,6 +48,30 @@ pub const Vector = struct {
             .z = real_lerp(f64, a.z, b.z, t)
         };
     }
+
+    pub fn distance(a: Vector, b: Vector) f64 {
+        return std.math.sqrt (
+              std.math.pow(f64, b.x - a.x,  2) 
+            + std.math.pow(f64, b.y - a.y,  2) 
+            + std.math.pow(f64, b.z - a.z,  2)
+        );
+    }
+
+    pub fn add(a: Vector, b: Vector) Vector {
+        return .{
+            .x = a.x + b.x,
+            .y = a.y + b.y,
+            .z = a.z + b.z
+        };
+    }
+
+    pub fn mul_f64(a: Vector, b: f64) Vector {
+        return .{
+            .x = a.x * b,
+            .y = a.y * b,
+            .z = a.z * b
+        };
+    }
 };
 
 pub const Rectangle = struct {
@@ -66,9 +90,23 @@ pub const Rectangle = struct {
                other.y < (self.y+self.h);
     }
 
-    pub fn visible(self: Rectangle, width: f64, height: f64, camera: Vector) ?Rectangle {
+    pub fn grow(self: Rectangle, width: f64, height: f64) Rectangle {
+        return .{
+            .x = self.x - (width/2), .y = self.y - (height/2), 
+            .w = self.w + width, .h = self.y + height
+        };
+    }
+
+    pub fn visible(self: Rectangle, width: f64, height: f64, scale: f64, camera: Vector) ?Rectangle {
         const w = width  / camera.z / 2;
         const h = height / camera.z / 2;
+
+        var rg = self.grow(scale, scale);
+        var g: Rectangle = .{};
+        g.x = (rg.x - camera.x) / w;
+        g.y = (rg.y - camera.y) / h;
+        g.w = rg.w / w;
+        g.h = rg.h / h;
 
         var n: Rectangle = .{};
         n.x = (self.x - camera.x) / w;
@@ -76,6 +114,6 @@ pub const Rectangle = struct {
         n.w = self.w / w;
         n.h = self.h / h;
 
-        return if (n.colliding(Rectangle.clip)) n else null;
+        return if (g.colliding(Rectangle.clip)) n else null;
     }
 };

@@ -20,7 +20,8 @@ pub const Sprite = struct {
     offset: extra.Vector = .{},
     color: extra.Color = .{},
     scale: extra.Vector = .{.x=1, .y=1},
-    wobble: f64 = 0
+    wobble: f64 = 0,
+    rotation: f64 = 0
 };
 
 pub const State = struct {
@@ -68,10 +69,17 @@ pub var color_a: extra.Color = .{};
 pub var color_b: extra.Color = .{};
 pub var filter: f32 = 0;
 
-fn noise(mag: f64, offset: f64) f32 {
+fn noise(mag: f64, offset: f64) f64 {
     if (mag == 0)
         return 0;
     return @floatCast(f32, mag * (0.5 - assets.noise(.{.x=offset+timer, .y=(offset*0.5)+timer})));
+}
+
+fn posNoise(x: f64, y: f64, wobble: f64) [2]f32 {
+    return [2]f32 {
+        @floatCast(f32, x + noise(wobble/(width/real_camera.z),  (x*32) + (timer*3))),
+        @floatCast(f32, y + noise(wobble/(height/real_camera.z), (y*32) + (timer*3)))
+    };
 }
 
 pub fn render(spr: Sprite) void {
@@ -87,7 +95,8 @@ pub fn render(spr: Sprite) void {
         .h = sprite.origin.h*sprite.scale.y
     };
 
-    n = n.visible(width, height, real_camera) orelse return;
+    var w: f64 = sprite.wobble;
+    n = n.visible(width, height, w, real_camera) orelse return;
     
     // [Pos, Size] to [Corner A, Corner B]
     n.w += n.x;
@@ -104,13 +113,25 @@ pub fn render(spr: Sprite) void {
     u.w += u.x;
     u.h += u.y;
     
-    var w = sprite.wobble;
+    // TODO: Fix wobbly sprite discrimination
+    // Idea: Probably grow the square by wobble?
+    var p1 = posNoise(n.x, -n.h, w);
+    var p2 = posNoise(n.w, -n.h, w);
+    var p3 = posNoise(n.w, -n.y, w);
+    var p4 = posNoise(n.x, -n.y, w);
 
+    const c = sprite.color;
+ 
+    // TODO: Fix the wayland backend making the 
+    // sprites look weird (Probably just floor() it)
+
+    // Now that I think about it, why does that
+    // even happen??? subpixel madness????
     const tmp_vertices = [_]f32 { // i hate this coordinate system :P
-        @floatCast(f32, n.x)+noise(w/width,  2+spr.position.x*5), -@floatCast(f32, n.h)+noise(w/height,  2+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.x), @floatCast(f32, u.h),
-        @floatCast(f32, n.w)+noise(w/width,  5+spr.position.x*5), -@floatCast(f32, n.h)+noise(w/height,  5+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.w), @floatCast(f32, u.h),
-        @floatCast(f32, n.w)+noise(w/width,  7+spr.position.x*5), -@floatCast(f32, n.y)+noise(w/height,  7+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.w), @floatCast(f32, u.y),
-        @floatCast(f32, n.x)+noise(w/width, -4+spr.position.x*5), -@floatCast(f32, n.y)+noise(w/height, -4+spr.position.y*5), 1.0,   sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a,   @floatCast(f32, u.x), @floatCast(f32, u.y)
+        p1[0], p1[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.x), @floatCast(f32, u.h),
+        p2[0], p2[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.w), @floatCast(f32, u.h),
+        p3[0], p3[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.w), @floatCast(f32, u.y),
+        p4[0], p4[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.x), @floatCast(f32, u.y)
     };
 
     std.mem.copy(f32, vertices[(current_vertex * 36)..], &tmp_vertices);
@@ -157,9 +178,7 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
     var i: usize = 0;
 
     var wobbly: bool = false;
-    var wobble: f64 = 0;
     var h = highlight orelse color;
-    var c = color;
     var ih: bool = false;
 
     var iter = (try std.unicode.Utf8View.init(t)).iterator();
@@ -179,12 +198,10 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
 
             '*' => {
                 ih = !ih;
-                c = if (ih) h else color;
             },
 
             '~' => {
                 wobbly = !wobbly;
-                wobble = if (wobbly) 1 else 0;
             },
 
             else => {
@@ -200,14 +217,15 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
                 var tp = cp;
                 tp.y -= e.origin.y;
                 tp.x -= e.origin.x;
-                tp.y -= @sin((timer*5) + tp.x) * wobble;
+                tp.y -= @sin((timer*5) + tp.x) 
+                    * @as(f64, if (wobbly) 1 else 0);
                 
                 if (code != ' ')
                     render(
                         .{
                             .origin = e.sprite, 
                             .position = tp,
-                            .color = c
+                            .color = if (ih) h else color,
                         }
                     );
                 cp.x += e.sprite.w - e.origin.x;
@@ -231,7 +249,8 @@ export fn init() void {
 
     input.setup(allocator) catch undefined;
 
-    audio.init(allocator) catch unreachable;
+    // TODO: GET THIS FRICKEN THING TO WORKKKKKKKK GOD DAMMIT AUGHHHHH
+    //audio.init(allocator) catch unreachable;
 
     if (comptime DEBUGMODE) {
         var sdtx_desc: st.Desc = .{};
@@ -314,12 +333,20 @@ export fn frame() void {
 
     width = @floatCast(f64, sapp.widthf());
     height = @floatCast(f64, sapp.heightf());
-    camera.z = @max(@floor(@min(width, height) / 250), 1);
+    var s = @floor(@min(width, height) / 250);
+    camera.z = @max(s, 1);
     real_camera = real_camera.lerp(camera, delta * 16);
 
     current_vertex = 0;
 
-    current_state.loop(delta) catch unreachable;
+    if (s > 0)
+        current_state.loop(delta) catch unreachable
+    else {
+        print(
+            .{.x = -(width/2)+32}, "Not enough space :(", 
+            null, width, .{.a=0.8}, null
+        ) catch unreachable;
+    }
 
     //if (comptime DEBUGMODE)
     //    outlineRect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});

@@ -21,3 +21,4 @@ Rendering:
 
     Each tile is chunked to discriminate non-visible tiles
     without having to iterate through each tile.
+

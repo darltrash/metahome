@@ -1,4 +1,6 @@
 const audio = @import("sokol").audio;
+const extra = @import("extra.zig");
+const main = @import("rewrite.zig");
 const std = @import("std");
 const c = @import("c");
 const assets = @import("assets.zig");
@@ -8,7 +10,10 @@ pub const Source = struct {
     length: u64,
     mp3: c.drmp3_t,
 
-    pub fn create(raw: []const u8, loop: bool) !Source {
+    volume: f32 = 1,
+    position: ?extra.Vector = null,
+
+    pub fn create(raw: []const u8) !Source {
         var mp3: c.drmp3_t = undefined;
         var status = c.drmp3_init_memory(@ptrCast(*c.drmp3, &mp3), raw.ptr, raw.len, null);
 
@@ -16,7 +21,6 @@ pub const Source = struct {
             return error.couldNotDecode;
 
         return Source {
-            .loop = loop,
             .length = c.drmp3_get_pcm_frame_count(@ptrCast(*c.drmp3, &mp3)),
             .mp3 = mp3,
         };
@@ -26,17 +30,14 @@ pub const Source = struct {
 pub var sources: std.ArrayList(Source) = undefined;
 
 fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
-    //_ = buffer;
-    //_ = frames;
-    //_ = channels;
-
-    //var this_buffer = allocator.alloc(f32, @intCast(usize, frames)) catch unreachable;
-    
     var i: usize = 0;
     while (i < (frames*channels)) {
         buffer[i] = 0;
         i += 1;
     }
+
+    //var a = main.allocator.alloc(f32, @intCast(usize, frames*channels)) catch unreachable;
+    //defer allocator.free(a);
 
     for (sources.items) | *source, key | {
         var m = @ptrCast(*c.drmp3, &source.mp3);
@@ -49,31 +50,34 @@ fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
                 _ = sources.orderedRemove(key);
             }
         }
-        //for (this_buffer) | val, k | {
-        //    buffer[k] += val;
-        //}
 
+        var vol = source.volume;
+        if (source.position != null)
+            vol *= @floatCast(f32, source.position.?.distance(main.real_camera));
+
+
+        //for (a) | val, k | {
+        //    buffer[k] += val * vol;
+        //}
     }
 
     //allocator.free(this_buffer);
 }
 
-pub fn addSource(source: Source) !void {
+pub fn addSource(source: Source) !*Source {
     try sources.append(source);
+    return &sources.items[sources.items.len-1];
 }
 
-var allocator: std.mem.Allocator = undefined;
-
-pub fn init(alloc: std.mem.Allocator) !void {
-    allocator = alloc;
-
+pub fn init(allocator: std.mem.Allocator) !void {
     sources = std.ArrayList(Source).init(allocator);
-
-    try addSource(try Source.create(assets.@"mus_await.mp3", true));
 
     audio.setup(.{ 
         .stream_cb = thread,  
         .num_channels = 2,
         .sample_rate = 48000
     });
+
+    var a = try addSource(try Source.create(assets.@"mus_await.mp3"));
+    a.volume = 0.1;
 }
