@@ -97,16 +97,9 @@ pub const Rectangle = struct {
         };
     }
 
-    pub fn visible(self: Rectangle, width: f64, height: f64, scale: f64, camera: Vector) ?Rectangle {
+    pub fn visible(self: Rectangle, width: f64, height: f64, camera: Vector) ?Rectangle {
         const w = width  / camera.z / 2;
         const h = height / camera.z / 2;
-
-        var rg = self.grow(scale, scale);
-        var g: Rectangle = .{};
-        g.x = (rg.x - camera.x) / w;
-        g.y = (rg.y - camera.y) / h;
-        g.w = rg.w / w;
-        g.h = rg.h / h;
 
         var n: Rectangle = .{};
         n.x = (self.x - camera.x) / w;
@@ -114,6 +107,29 @@ pub const Rectangle = struct {
         n.w = self.w / w;
         n.h = self.h / h;
 
-        return if (g.colliding(Rectangle.clip)) n else null;
+        return if (n.colliding(Rectangle.clip)) n else null;
     }
 };
+
+// great name, neil.
+pub fn optionate(comptime T: type) type {
+    const raw_fields = std.meta.fields(T);
+    const fields: [raw_fields.len]std.builtin.Type.StructField = undefined;
+
+    for (raw_fields) | field, k | {
+        fields[k] = .{
+            .name = field.name,
+            .type = ?field.type,
+            .default_value = &null,
+            .is_comptime = false,
+            .alignment = @alignOf(?field.type),
+        };
+    }
+
+    return @Type(.{ .Struct = .{
+        .is_tuple = false,
+        .layout = .Auto,
+        .decls = &.{},
+        .fields = &fields,
+    } });
+}

@@ -17,10 +17,8 @@ const audio = @import("audio.zig");
 pub const Sprite = struct { 
     origin: extra.Rectangle = .{},
     position: extra.Vector = .{},
-    offset: extra.Vector = .{},
     color: extra.Color = .{},
     scale: extra.Vector = .{.x=1, .y=1},
-    wobble: f64 = 0,
     rotation: f64 = 0
 };
 
@@ -89,14 +87,14 @@ pub fn render(spr: Sprite) void {
     var sprite = spr;
 
     var n = extra.Rectangle {
-        .x = sprite.position.x+sprite.offset.x, 
-        .y = sprite.position.y+sprite.offset.y, 
+        .x = sprite.position.x, 
+        .y = sprite.position.y, 
         .w = sprite.origin.w*sprite.scale.x, 
         .h = sprite.origin.h*sprite.scale.y
     };
 
-    var w: f64 = sprite.wobble;
-    n = n.visible(width, height, w, real_camera) orelse return;
+    var w: f64 = 0;//sprite.wobble;
+    n = n.visible(width, height, real_camera) orelse return;
     
     // [Pos, Size] to [Corner A, Corner B]
     n.w += n.x;
@@ -316,11 +314,6 @@ export fn init() void {
 
     pass_action.colors[0] = .{ .action=.CLEAR, .value=.{ .r=0, .g=0, .b=0, .a=1 } };
     text_pass_action.colors[0].action = .DONTCARE;
-
-    // TODO: MOVE
-    //self.map = try Map.load(assets.map_test, self.allocator);
-
-    //state.init() catch unreachable;
 
     setState(.main) catch unreachable;
 }

@@ -2,6 +2,8 @@ const sapp = @import("sokol").app;
 const std = @import("std");
 const ini = @import("ini");
 
+// TODO: Fix down values not being at 1 when just pressed
+
 pub const InputMethod = enum {
     keyboard, gamepad
 };

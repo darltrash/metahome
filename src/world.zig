@@ -5,6 +5,7 @@ const input = @import("input.zig");
 const dialog = @import("dialog.zig");
 const assets = @import("assets.zig");
 const znt = @import("znt.zig");
+const ents = @import("entities.zig");
 const chunk_size = 8 * 8;
 
 const Index = struct {
@@ -30,10 +31,11 @@ const World = struct {
         height: u32,
         uid: u32,
         tiles: [][6]f64,
-        //entities: []Entity
+        entities: []ents.Scene.OptionalEntity
     };
 
     chunks: std.AutoHashMap(Index, Chunk),
+    scene: ents.Scene,
 
     const ChunkIterator = struct {
         parent: *World = undefined,
@@ -100,11 +102,12 @@ const World = struct {
 
     pub fn fromJSON(src: []const u8, allocator: std.mem.Allocator) !World {
         var out: World = .{
-            .chunks = std.AutoHashMap(Index, Chunk).init(allocator)
+            .chunks = std.AutoHashMap(Index, Chunk).init(allocator),
+            .scene = ents.Scene.init(main.allocator)
         };
 
         var tokens = std.json.TokenStream.init(src);
-        var raw = try std.json.parse(Proto, &tokens, .{ .allocator = allocator });
+        var raw = try std.json.parse(Proto, &tokens, .{ .allocator = allocator, .ignore_unknown_fields = true });
 
         for (raw.tiles) | tile | {
             var t = main.Sprite {
@@ -116,36 +119,19 @@ const World = struct {
             try chunk.tiles.append(t);
         }
 
+        for (raw.entities) | ent | {
+            _ = try out.scene.add(ents.init(ent));
+        }
+
         return out;
     }
 };
 
 var map: World = undefined;
 
-const Scene = znt.Scene(struct {
-    sprite:   main.Sprite,
-    position: extra.Vector,
-    velocity: extra.Vector,
-    camera_focus: void
-}, .{});
-
-var scene: Scene = undefined;
 
 fn init() !void {
     map = try World.fromJSON(assets.@"map_test.json", main.allocator);
-
-    scene = Scene.init(main.allocator);
-    _ = try scene.add(.{
-        .position = .{.x=0, .y=0},
-        .velocity = .{.x=5, .y=5},
-        .sprite = .{
-            .origin = .{
-                .x=112, .y=0,
-                .w=24,  .h=16
-            }
-        },
-        .camera_focus = {}
-    });
 }
 
 fn loop(delta: f64) !void {
@@ -163,30 +149,7 @@ fn loop(delta: f64) !void {
         }
     }
 
-    {
-        var ents = scene.iter(&.{ .position, .velocity });
-        while (ents.next()) | ent | {
-            ent.position.* = ent.position.add(ent.velocity.mul_f64(delta));
-        }
-    }
-
-    {
-        var ents = scene.iter(&.{ .sprite });
-        while (ents.next()) | ent | {
-            var spr = ent.sprite.*;
-            var pos = scene.getOne(.position, ent.id);
-            if (pos != null) 
-                spr.position = spr.position.add(pos.?.*);
-            main.render(spr);
-        }
-    }
-
-    {
-        var ents = scene.iter(&.{ .camera_focus, .position });
-        while (ents.next()) | ent | {
-            main.camera = ent.position.*;
-        }
-    }
+    try ents.process(map.scene, delta);
 
     try dialog.loop(delta);
 }
