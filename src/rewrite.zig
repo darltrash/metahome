@@ -19,6 +19,7 @@ pub const Sprite = struct {
     position: extra.Vector = .{},
     color: extra.Color = .{},
     scale: extra.Vector = .{.x=1, .y=1},
+    from_center: bool = false,
     rotation: f64 = 0
 };
 
@@ -92,6 +93,11 @@ pub fn render(spr: Sprite) void {
         .w = sprite.origin.w*sprite.scale.x, 
         .h = sprite.origin.h*sprite.scale.y
     };
+
+    if (sprite.from_center) {
+        n.x += sprite.origin.w*(1-sprite.scale.x)*0.5;
+        n.y += sprite.origin.h*(1-sprite.scale.y)*0.5;
+    }
 
     var w: f64 = 0;//sprite.wobble;
     n = n.visible(width, height, real_camera) orelse return;
@@ -386,6 +392,14 @@ export fn cleanup() void {
 
 export fn event(ev: [*c]const sapp.Event) void {
     input.handle(ev) catch unreachable;
+
+    switch (ev[0].type) {
+        .KEY_DOWN => {
+            if (ev[0].key_code == sapp.Keycode.F11 and !ev[0].key_repeat)
+                sapp.toggleFullscreen();
+        },
+        else => {}
+    }
 }
 
 pub fn main() void {

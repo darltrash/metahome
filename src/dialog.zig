@@ -34,9 +34,10 @@ const Instruction = union(InstructionTypes) {
 };
 
 fn advance() void {
-    active = at < instructions.len;
-    if (at >= instructions.len)
+    if (at >= instructions.len) {
+        active = false;
         return;
+    }
 
     cursor = 0;
 
@@ -110,10 +111,13 @@ pub fn loop(delta: f64) !void {
 
     var i = @floatToInt(usize, cursor);
 
-    if (position > 0.99)
+    if (position > 0.99) 
         return;
 
     var p = position * (main.height / main.real_camera.z / 2);
+
+    var cam = main.real_camera;
+    main.real_camera = .{ .z = cam.z };
 
     if (options == null) {
         frame(.{ .x=-125+8, .y=p+(125-76), .w=250-16, .h=80-12});
@@ -140,7 +144,7 @@ pub fn loop(delta: f64) !void {
         for (options.?) | option | {
             var y = p+(125-60)+@intToFloat(f64, k*13);
 
-            try main.print(.{ .x=16, .y=y }, option.text, i, 125-26, .{}, highlight);
+            try main.print(.{ .x=16, .y=y }, option.text, i, 2000, .{}, highlight);
 
             k += 1;
         }
@@ -157,6 +161,8 @@ pub fn loop(delta: f64) !void {
         }
         advance();
     }
+
+    main.real_camera = cam;
 }
 
 pub const state = main.State {

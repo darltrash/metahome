@@ -7,6 +7,8 @@ const extra = @import("extra.zig");
 
 pub usingnamespace assets;
 
+// TODO: Compress stuff up! 
+
 pub const Image = struct { 
     const Pixel = packed struct { 
         r: u8, g: u8, b: u8, a: u8

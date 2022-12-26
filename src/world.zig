@@ -22,10 +22,17 @@ const Index = struct {
 
 const Chunk = struct {
     index: Index,
-    tiles: std.ArrayList(main.Sprite)
+    tiles: std.ArrayList(main.Sprite),
+    colls: std.ArrayList(ColliderState)
 };
 
-const World = struct {
+pub const ColliderState = struct {
+    amount: u32 = 0,
+    id: znt.EntityId = 0,
+    collider: extra.Rectangle
+};
+
+pub const World = struct {
     const Proto = struct {
         width: u32,
         height: u32,
@@ -94,10 +101,27 @@ const World = struct {
         if (chunk == null)
             try self.chunks.put(index, .{
                 .index = index,
-                .tiles = std.ArrayList(main.Sprite).init(allocator)
+                .tiles = std.ArrayList(main.Sprite).init(allocator),
+                .colls = std.ArrayList(ColliderState).init(allocator)
             });
         
         return chunk orelse self.chunks.getPtr(index) orelse undefined;
+    }
+
+    pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity) !void {
+        var ent = ents.init(entity);
+        var id = try self.scene.add(ent);
+
+        if (ent.collider != null) {
+            var iter = map.eachChunk(ent.collider.?);
+
+            while (iter.next()) | chunk | {
+                try chunk.colls.append(.{
+                    .collider = ent.collider.?,
+                    .id = id
+                });
+            }
+        }
     }
 
     pub fn fromJSON(src: []const u8, allocator: std.mem.Allocator) !World {
@@ -120,7 +144,7 @@ const World = struct {
         }
 
         for (raw.entities) | ent | {
-            _ = try out.scene.add(ents.init(ent));
+            try out.addEntity(ent);
         }
 
         return out;
@@ -129,8 +153,8 @@ const World = struct {
 
 var map: World = undefined;
 
-
 fn init() !void {
+    //_ = try dialog.loadScript(@embedFile("script.json"));
     map = try World.fromJSON(assets.@"map_test.json", main.allocator);
 }
 
@@ -149,7 +173,7 @@ fn loop(delta: f64) !void {
         }
     }
 
-    try ents.process(map.scene, delta);
+    try ents.process(map.scene, &map, delta);
 
     try dialog.loop(delta);
 }

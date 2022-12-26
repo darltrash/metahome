@@ -27,7 +27,6 @@ f:close()
             end
         elseif layer.__type == "Entities" then
             for uid, entity in ipairs(layer.entityInstances) do
-                local collider
                 local fields = {}
                 for _, v in ipairs(entity.fieldInstances) do
                     local a = v.__value
@@ -36,7 +35,7 @@ f:close()
                     end
 
                     if v.__identifier == "Collider" then
-                        collider = {
+                        fields.collider = {
                             x=0, y=0, 
                             w=entity.width,
                             h=entity.height
