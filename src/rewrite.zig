@@ -14,6 +14,8 @@ const assets = @import("assets.zig");
 const font  = @import("font.zig");
 const audio = @import("audio.zig");
 
+pub const resolution = 250;
+
 pub const Sprite = struct { 
     origin: extra.Rectangle = .{},
     position: extra.Vector = .{},
@@ -42,7 +44,7 @@ pub fn setState(state: States) !void {
     try current_state.init();
 }
 
-const quad_amount = 2048;
+const quad_amount = 4096;
 
 pub var width: f64 = 0;
 pub var height: f64 = 0;
@@ -332,7 +334,7 @@ export fn frame() void {
 
     width = @floatCast(f64, sapp.widthf());
     height = @floatCast(f64, sapp.heightf());
-    var s = @floor(@min(width, height) / 250);
+    var s = @floor(@min(width, height) / resolution);
     camera.z = @max(s, 1);
     real_camera = real_camera.lerp(camera, delta * 16);
 
@@ -372,7 +374,7 @@ export fn frame() void {
         st.color1i(0xffffffff);
         st.origin(2, 2);
         st.font(0);
-        st.print("Quads: {}/{}", .{current_vertex, quad_amount});
+        st.print("Quads: {}/{} ({}b)", .{current_vertex, quad_amount, @sizeOf(f32)*current_vertex});
         st.crlf();
         st.print("Camera: [{d:.1}, {d:.1}, {d:.1}]", .{real_camera.x, real_camera.y, real_camera.z});
         st.crlf();

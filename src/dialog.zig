@@ -119,16 +119,19 @@ pub fn loop(delta: f64) !void {
     var cam = main.real_camera;
     main.real_camera = .{ .z = cam.z };
 
+    var half = @as(f64, main.resolution)/2;
+    var full = @as(f64, main.resolution);
+
     if (options == null) {
-        frame(.{ .x=-125+8, .y=p+(125-76), .w=250-16, .h=80-12});
+        frame(.{ .x=-half+8, .y=p+(half-76), .w=full-16, .h=80-12});
 
         try main.print(.{
-            .x=-125+16, .y=p+(125-60)
-        }, text, i, 250-26, .{}, .{.r=0.439, .g=0.682, .b=1, .a=1});
+            .x=-half+16, .y=p+(half-60)
+        }, text, i, full-26, .{}, .{.r=0.439, .g=0.682, .b=1, .a=1});
 
     } else {
-        frame(.{ .x=-125+8, .y=p+(125-76), .w=125-16, .h=80-12});
-        frame(.{ .x=8, .y=p+(125-76), .w=125-16, .h=80-12});
+        frame(.{ .x=-half+8, .y=p+(half-76), .w=half-16, .h=80-12});
+        frame(.{ .x=8, .y=p+(half-76), .w=half-16, .h=80-12});
 
         if (input.down(.up) == 2)
             selected -= 1;
@@ -138,11 +141,11 @@ pub fn loop(delta: f64) !void {
 
         selected = @mod(selected, @intCast(i8, options.?.len));
 
-        try main.print(.{ .x=-125+16, .y=p+(125-60) }, text, i, 125-26, .{}, highlight);
+        try main.print(.{ .x=-half+16, .y=p+(half-60) }, text, i, half-26, .{}, highlight);
 
         var k: usize = 0;
         for (options.?) | option | {
-            var y = p+(125-60)+@intToFloat(f64, k*13);
+            var y = p+(half-60)+@intToFloat(f64, k*13);
 
             try main.print(.{ .x=16, .y=y }, option.text, i, 2000, .{}, highlight);
 
@@ -151,7 +154,7 @@ pub fn loop(delta: f64) !void {
 
         selected_float = extra.lerp(f64, selected_float, @intToFloat(f64, selected*13), delta * 16);
 
-        try main.print(.{ .x=125-20, .y=p+(125-60)+selected_float }, "<", i, 125-26, .{}, null);
+        try main.print(.{ .x=half-20, .y=p+(half-60)+selected_float }, "<", i, half-26, .{}, null);
     }
 
     if (i > text.len and input.down(.action) > 0) {

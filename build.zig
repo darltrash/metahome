@@ -3,15 +3,23 @@ const sokol = @import("lib/sokol-zig/build.zig");
 //const zig_ecs = @import("lib/zig-ecs/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
-    const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
+    var target = b.standardTargetOptions(.{});
+    var mode = b.standardReleaseOptions();
+
+    var simon_mode = b.option(bool, "simon-mode", "Enable compatibility for Simon-based systems.") orelse false;
 
     var config: sokol.Config = .{};
     if (target.isLinux()) {
-        config.backend = .gles2;
-        config.force_egl = true;
+        if (!simon_mode) {
+            config.backend = .gles2;
+            config.force_egl = true;
+        }
         //config.enable_wayland = true;
+        //config.enable_x11 = false;
     }
+
+    if (simon_mode)
+        target.cpu_model = .{ .explicit = &std.Target.x86.cpu.athlon64 };
 
     const sokol_build = sokol.buildSokol(b, target, mode, config, "lib/sokol-zig/");
 

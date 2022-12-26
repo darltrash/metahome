@@ -154,7 +154,7 @@ pub const World = struct {
 var map: World = undefined;
 
 fn init() !void {
-    //_ = try dialog.loadScript(@embedFile("script.json"));
+    _ = try dialog.loadScript(@embedFile("script.json"));
     map = try World.fromJSON(assets.@"map_test.json", main.allocator);
 }
 
