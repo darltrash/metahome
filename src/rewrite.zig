@@ -10,7 +10,7 @@ const shd   = @import("shaders/quad.glsl.zig");
 const extra = @import("extra.zig");
 const input = @import("input.zig");
 const assets = @import("assets.zig");
-const back = @import("background.zig");
+const back  = @import("background.zig");
 
 const font  = @import("font.zig");
 const audio = @import("audio.zig");
@@ -275,7 +275,7 @@ export fn init() void {
         .size = quad_amount * 36 * 4
     });
 
-    var indices: [quad_amount*6]u32 = undefined;
+    var indices: [quad_amount*6]u16 = undefined;
     comptime {
         @setEvalBranchQuota(quad_amount+1);
         var i: usize = 0;
@@ -299,7 +299,7 @@ export fn init() void {
     });
 
     var pip_desc: sg.PipelineDesc = .{
-        .index_type = .UINT32,
+        .index_type = .UINT16,
         .shader = sg.makeShader(shd.quadShaderDesc(sg.queryBackend())),
         .depth = .{
             .compare = .LESS_EQUAL,
@@ -359,8 +359,8 @@ export fn frame() void {
     var uniforms: shd.VsUniforms = .{
         .color_a = back.uniforms.color_a,
         .color_b = back.uniforms.color_b,
-        .strength = filter
     };
+    uniforms.color_a.a = filter;
     
     sg.updateBuffer(bind.vertex_buffers[0], sg.asRange(&vertices));
 

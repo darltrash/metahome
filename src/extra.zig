@@ -74,6 +74,13 @@ pub const Vector = struct {
     }
 };
 
+pub const Collision = struct {
+    normal: Vector = .{},
+    at: Vector = .{},
+    near: f64 = 0,
+    velocity: Vector = .{}
+};
+
 pub const Rectangle = struct {
     pub const clip = Rectangle {
         .x = -1, .y = -1,
@@ -108,6 +115,92 @@ pub const Rectangle = struct {
         n.h = self.h / h;
 
         return if (n.colliding(Rectangle.clip)) n else null;
+    }
+    
+    pub fn getMiddle(self: Rectangle) Vector {
+        return .{
+            .x = self.x+(self.w/2),
+            .y = self.y+(self.h/2)
+        };
+    }
+
+    pub fn vsRay(self: Rectangle, start: Vector, end: Vector) ?Collision {
+        var inv_dir: Vector = .{
+            .x = 1 / end.x, 
+            .y = 1 / end.y
+        };
+        
+        var near: Vector = .{
+            .x = (self.x - start.x) * inv_dir.x, 
+            .y = (self.y - start.y) * inv_dir.y
+        };
+
+        var far: Vector = .{
+            .x = (self.x + self.w - start.x) * inv_dir.x, 
+            .y = (self.y + self.h - start.y) * inv_dir.y
+        };
+
+        if (near.x > far.x) {
+            var _x = near.x;
+            near.x = far.x;
+            far.x = _x;
+        }
+
+        if (near.y > far.y) {
+            var _y = near.y;
+            near.y = far.y;
+            far.y = _y;
+        }
+
+        if (near.x > far.y or near.y > far.x)
+            return null;
+
+        var hit_near = @max(near.x, near.y);
+        var hit_far  = @min(far.x,  far.y);
+
+        if (hit_far < 0)
+            return null;
+
+        var collision: Collision = .{
+            .at = .{
+                .x = start.x + hit_near * end.x,
+                .y = start.y + hit_near * end.y
+            },
+            .near = hit_near
+        };
+
+        if (near.x > near.y)
+            collision.normal.x = if (inv_dir.x < 0) 1 else -1
+
+        else if (near.x < near.y)
+            collision.normal.y = if (inv_dir.y < 0) 1 else -1;
+        
+        return collision;
+    }
+
+    pub fn vsKinematic(self: Rectangle, b: Rectangle, velocity: Vector, delta: f64) ?Collision {
+        if (velocity.x == 0 and velocity.y == 0)
+            return null;
+
+        var collision = 
+            self.grow(b.w, b.h).vsRay(b.getMiddle(), velocity.mul_f64(delta))
+            orelse return null;
+
+        if (collision.near >= 0.0 and collision.near < 1.0)
+            return collision;
+
+        return null;
+    }
+
+    pub fn solveCollision(self: Rectangle, b: Rectangle, velocity: Vector, delta: f64) ?Collision {
+        var collision = b.vsKinematic(self, velocity, delta) orelse return null;
+
+        var v: Vector = velocity;
+        v.x = velocity.x + (collision.normal.x * @fabs(velocity.x) * (1-collision.near));
+        v.y = velocity.y + (collision.normal.y * @fabs(velocity.y) * (1-collision.near));
+
+        collision.velocity = v;
+        return collision;
     }
 };
 

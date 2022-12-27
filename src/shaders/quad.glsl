@@ -24,7 +24,6 @@ uniform sampler2D tex;
 uniform vs_uniforms {
     vec4 color_a;
     vec4 color_b;
-    float strength;
 };
 
 in vec4 color;
@@ -38,7 +37,7 @@ float luma(vec4 color) {
 void main() {
     vec4 c = texture(tex, uv) * color;
     frag_color = c;
-    frag_color.rgb = mix(c, mix(color_a, color_b, 1.0-luma(c)), strength).rgb;
+    frag_color.rgb = mix(c, mix(color_a, color_b, 1.0-luma(c)), color_a.a).rgb;
 }
 @end
 

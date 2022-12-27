@@ -149,16 +149,49 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
     {
         var ents = scene.iter(&.{ .position, .velocity });
         while (ents.next()) | ent | {
-            _ = map;
-            //var iter = map.eachChunk(ent.collider.?);
-            //
-            //while (iter.next()) | chunk | {
-            //    try chunk.colls.append(.{
-            //        .collider = ent.collider.?,
-            //        .id = id
-            //    });
-            //}
-            var pos = ent.position.add(ent.velocity.mul_f64(delta));
+            var vel = ent.velocity.*;
+
+            var raw_coll = scene.getOne(.collider, ent.id);
+            if (raw_coll != null) {
+                var collider: extra.Rectangle = .{
+                    .x = raw_coll.?.x+ent.position.x,
+                    .y = raw_coll.?.y+ent.position.y,
+                    .w = raw_coll.?.w,
+                    .h = raw_coll.?.h
+                };
+                var size = @as(f64, world.chunk_size);
+
+                {
+                    var iter = map.eachChunk(collider.grow(size, size));
+                
+                    while (iter.next()) | chunk | {
+                        for (chunk.colls.items) | coll, key | {
+                            if (coll.id == ent.id) { // Deletes itself
+                                _ = chunk.colls.swapRemove(key);
+                                continue;
+                            }
+
+                            var collision = collider.solveCollision(coll.collider, vel, delta);
+                            if (collision != null) {
+                                vel = collision.?.velocity;
+                            }
+                        }
+                    }
+                }
+
+                {
+                    var iter = map.eachChunk(collider);
+                
+                    while (try iter.nextOrCreate(main.allocator)) | chunk | {
+                        try chunk.colls.append(.{
+                            .id = ent.id,
+                            .collider = collider
+                        });
+                    }
+                }
+            }
+            
+            var pos = ent.position.add(vel.mul_f64(delta));
 
             ent.position.* = pos;
             //if (scene.getOne(comptime comp: Component, eid: EntityId))
@@ -180,7 +213,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
         }
     }
 
-        {
+    {
         var ents = scene.iter(&.{ .interact, .position, .interact_anim });
         while (ents.next()) | ent | {
             var near = false;
@@ -235,17 +268,6 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
 
     for (sprites) | sprite | {
         main.render(sprite);
-    }
-
-    if (false and comptime main.DEBUGMODE) {
-        var ents = scene.iter(&.{ .collider, .position });
-        while (ents.next()) | ent | {
-            var rect = ent.collider.*;
-            rect.x += ent.position.x;
-            rect.y += ent.position.y;
-
-            main.rect(rect, .{.g=0, .b=0, .a=0.4});
-        }
     }
 
     if (false and comptime main.DEBUGMODE) {

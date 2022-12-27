@@ -6,7 +6,7 @@ const dialog = @import("dialog.zig");
 const assets = @import("assets.zig");
 const znt = @import("znt.zig");
 const ents = @import("entities.zig");
-const chunk_size = 8 * 8;
+pub const chunk_size = 8 * 8;
 
 const Index = struct {
     x: i16 = 0, 
@@ -169,6 +169,11 @@ fn loop(delta: f64) !void {
     while (iter.next()) | chunk | {
         for (chunk.tiles.items) | tile | {
             main.render(tile);
+        }
+        if (comptime main.DEBUGMODE) {
+            for (chunk.colls.items) | item | {
+                main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
+            }
         }
     }
 

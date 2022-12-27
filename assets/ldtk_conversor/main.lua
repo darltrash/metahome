@@ -34,7 +34,7 @@ f:close()
                         goto continue
                     end
 
-                    if v.__identifier == "Collider" then
+                    if v.__identifier == "collider" then
                         fields.collider = {
                             x=0, y=0, 
                             w=entity.width,
