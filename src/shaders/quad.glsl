@@ -1,5 +1,5 @@
 /* quad vertex shader */
-@header const e = @import("extra.zig")
+@header const e = @import("extra")
 @ctype vec4 e.Color
 
 @vs vs
@@ -37,7 +37,8 @@ float luma(vec4 color) {
 
 void main() {
     vec4 c = texture(tex, uv) * color;
-    frag_color = mix(c, mix(color_a, color_b, luma(c)), strength);
+    frag_color = c;
+    frag_color.rgb = mix(c, mix(color_a, color_b, 1.0-luma(c)), strength).rgb;
 }
 @end
 

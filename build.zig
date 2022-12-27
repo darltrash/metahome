@@ -37,6 +37,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.linkLibrary(sokol_build);
     exe.addPackagePath("sokol", "lib/sokol-zig/src/sokol/sokol.zig");
     exe.addPackagePath("assets", "assets/assets.zig");
+    exe.addPackagePath("extra", "src/extra.zig");
 
     exe.install();
 

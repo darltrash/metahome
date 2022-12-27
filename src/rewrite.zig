@@ -6,10 +6,11 @@ const sapp  = @import("sokol").app;
 const sgapp = @import("sokol").app_gfx_glue;
 const st    = @import("sokol").debugtext;
 
-const shd   = @import("quad.glsl.zig");
+const shd   = @import("shaders/quad.glsl.zig");
 const extra = @import("extra.zig");
 const input = @import("input.zig");
 const assets = @import("assets.zig");
+const back = @import("background.zig");
 
 const font  = @import("font.zig");
 const audio = @import("audio.zig");
@@ -68,7 +69,7 @@ var text_pass_action: sg.PassAction = .{};
 
 pub var color_a: extra.Color = .{};
 pub var color_b: extra.Color = .{};
-pub var filter: f32 = 0;
+pub var filter: f32 = 0.3;
 
 fn noise(mag: f64, offset: f64) f64 {
     if (mag == 0)
@@ -91,7 +92,7 @@ pub fn render(spr: Sprite) void {
 
     var n = extra.Rectangle {
         .x = sprite.position.x, 
-        .y = sprite.position.y, 
+        .y = sprite.position.y+sprite.position.z, 
         .w = sprite.origin.w*sprite.scale.x, 
         .h = sprite.origin.h*sprite.scale.y
     };
@@ -256,7 +257,7 @@ export fn init() void {
     input.setup(allocator) catch undefined;
 
     // TODO: GET THIS FRICKEN THING TO WORKKKKKKKK GOD DAMMIT AUGHHHHH
-    //audio.init(allocator) catch unreachable;
+    audio.init(allocator) catch unreachable;
 
     if (comptime DEBUGMODE) {
         var sdtx_desc: st.Desc = .{};
@@ -320,10 +321,11 @@ export fn init() void {
 
     pip = sg.makePipeline(pip_desc);
 
-    pass_action.colors[0] = .{ .action=.CLEAR, .value=.{ .r=0, .g=0, .b=0, .a=1 } };
+    pass_action.colors[0] = .{ .action=.DONTCARE, .value=.{ .r=0, .g=0, .b=0, .a=0 } };
     text_pass_action.colors[0].action = .DONTCARE;
 
     setState(.main) catch unreachable;
+    back.init() catch unreachable;
 }
 
 export fn frame() void {
@@ -331,6 +333,8 @@ export fn frame() void {
 
     var delta = sapp.frameDuration();
     timer += delta;
+
+    back.render() catch unreachable;
 
     width = @floatCast(f64, sapp.widthf());
     height = @floatCast(f64, sapp.heightf());
@@ -353,8 +357,8 @@ export fn frame() void {
     //    outlineRect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});
 
     var uniforms: shd.VsUniforms = .{
-        .color_a = color_a,
-        .color_b = color_b,
+        .color_a = back.uniforms.color_a,
+        .color_b = back.uniforms.color_b,
         .strength = filter
     };
     

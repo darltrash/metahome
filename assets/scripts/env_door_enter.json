@@ -1,0 +1,16 @@
+[
+    {
+        "text": "Do you want to\nenter?",
+        "options": [
+            {
+                "text": "No",
+                "goto": 5
+            },
+            {
+                "text": "Yes",
+                "goto": null
+            }
+        ]
+    },
+    "Just joking, I havent implemented that yet."
+]

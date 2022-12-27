@@ -203,7 +203,7 @@ pub fn Scene(comptime EntityType: type, comptime opts: SceneOptions) type {
         pub fn getOne(self: Self, comptime comp: Component, eid: EntityId) ?*std.meta.fieldInfo(Entity, comp).type {
             const addr = self.id_map.get(eid) orelse return null;
             const indices = self.entities.get(addr).?.indices;
-            return self.getComponent(comp, indices).?;
+            return self.getComponent(comp, indices) orelse null;
         }
 
         pub fn componentByType(comptime T: type) Component {

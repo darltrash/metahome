@@ -36,12 +36,12 @@ fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
         i += 1;
     }
 
-    //var a = main.allocator.alloc(f32, @intCast(usize, frames*channels)) catch unreachable;
-    //defer allocator.free(a);
+    var a = main.allocator.alloc(f32, @intCast(usize, frames*channels)) catch unreachable;
+    defer main.allocator.free(a);
 
     for (sources.items) | *source, key | {
         var m = @ptrCast(*c.drmp3, &source.mp3);
-        _ = c.drmp3_read_pcm_frames_f32(m, @intCast(u64, frames), buffer);
+        _ = c.drmp3_read_pcm_frames_f32(m, @intCast(u64, frames), a.ptr);
 
         if (source.mp3.currentPCMFrame == source.length) {
             if (source.loop) {
@@ -55,10 +55,9 @@ fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
         if (source.position != null)
             vol *= @floatCast(f32, source.position.?.distance(main.real_camera));
 
-
-        //for (a) | val, k | {
-        //    buffer[k] += val * vol;
-        //}
+        for (a) | val, k | {
+            buffer[k] += val * vol;
+        }
     }
 
     //allocator.free(this_buffer);
@@ -75,9 +74,9 @@ pub fn init(allocator: std.mem.Allocator) !void {
     audio.setup(.{ 
         .stream_cb = thread,  
         .num_channels = 2,
-        .sample_rate = 48000
+        .sample_rate = 44100
     });
 
-    var a = try addSource(try Source.create(assets.@"mus_await.mp3"));
-    a.volume = 0.1;
+    var a = try addSource(try Source.create(assets.@"mus_self_aware.mp3"));
+    a.volume = 0.5;
 }
