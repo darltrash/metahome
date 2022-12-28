@@ -9,13 +9,16 @@ jobs:
          with:
             zig-version: master
 
+       - name: Cache apt-install
+         uses: daaku/gh-action-apt-install@v4
+         with:
+            packages: libxi-dev libxcursor-dev libx11-dev libgl1-mesa-dev libegl-dev libasound2-dev
+
        - uses: actions/checkout@v3
          with:
           submodules: true
         
        - run: |
-          sudo apt-get install -y libxi-dev libxcursor-dev libx11-dev libgl1-mesa-dev libegl-dev libasound2-dev
-          
           zig build -Drelease-small -Dcpu=baseline -Dtarget=x86_64-linux-gnu
           mv zig-out/bin/metahome zig-out/bin/metahome.x86_64.linux
           
