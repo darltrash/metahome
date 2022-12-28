@@ -44,7 +44,7 @@ Rendering:
     without having to iterate through each tile.
 
 Collision:
-    Spatial-hashed, "Minkowski difference"-based collision
+    Spatial-hashed, "Minkowski sum"-based collision
     handling, extremely simple.
 
     It works this way, you have a static rectangle (A) and

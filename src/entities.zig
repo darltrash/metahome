@@ -163,7 +163,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                     .w = raw_coll.?.w,
                     .h = raw_coll.?.h
                 };
-                var size = @as(f64, world.chunk_size);
+                var size = @as(f64, world.chunk_size)*2;
 
                 // TODO: OPTIMIZE THIS HELLISH ABOMINATION.
                 {

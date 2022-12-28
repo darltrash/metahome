@@ -143,10 +143,10 @@ pub const Rectangle = struct {
             .y = (self.y + self.h - start.y) * inv_dir.y
         };
 
-        if (std.math.isNan(near.x) or std.math.isNan(near.y))
+        if (std.math.isNan(near.x) and std.math.isNan(near.y))
             return null;
 
-        if (std.math.isNan(near.y) or std.math.isNan(near.z))
+        if (std.math.isNan(near.y) and std.math.isNan(near.z))
             return null;
 
         if (near.x > far.x) {
