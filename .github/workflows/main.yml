@@ -11,7 +11,7 @@ jobs:
 
        - uses: actions/checkout@v3
         
-       - shell: | 
+       - run: | 
           cd metahome
           
           zig build -Drelease-small -Dcpu=baseline -Dtarget=x86_64-linux-gnu
