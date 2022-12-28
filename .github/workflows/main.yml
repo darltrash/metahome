@@ -13,8 +13,7 @@ jobs:
          with:
           submodules: true
         
-       - run: | 
-          ls
+       - run: |
           zig build -Drelease-small -Dcpu=baseline -Dtarget=x86_64-linux-gnu
           mv zig-out/bin/metahome zig-out/bin/metahome.x86_64.linux
           
