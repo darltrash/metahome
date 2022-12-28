@@ -3,6 +3,20 @@ pub const c = @cImport({
 });
 
 pub usingnamespace c;
+    
+pub const sr_rec = extern struct {
+	x: f64,
+	y: f64,
+	width: f64,
+	height: f64
+};
+
+pub const sr_vec2 = extern struct {
+	x: f64,
+	y: f64
+};
+
+pub extern fn sr_move_and_slide(obstacles: [*c]sr_rec, obstacles_length: c_int, hitbox: sr_vec2, vel: [*c]sr_vec2, pos: [*c]sr_vec2, delta: f64) void;
 
 // const DRMP3_MAX_PCM_FRAMES_PER_MP3_FRAME  = 1152;
 // const DRMP3_MAX_SAMPLES_PER_FRAME         = (DRMP3_MAX_PCM_FRAMES_PER_MP3_FRAME*2);

@@ -6,6 +6,7 @@ const extra = @import("extra.zig");
 const world = @import("world.zig");
 const dialog = @import("dialog.zig");
 const assets = @import("assets.zig");
+const c = @import("c");
 
 // TODO: Implement enemy AI through this thing :)
 pub const Controller = enum {
@@ -188,7 +189,6 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                     }
 
                     var f = try colliders.toOwnedSlice();
-                    std.sort.insertionSort(extra.Collision, f, false, world.World.sortCollider);
 
                     for (f) | coll | {
                         var collision = collider.solveCollision(coll.collider, vel, delta);

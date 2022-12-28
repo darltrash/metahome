@@ -191,9 +191,12 @@ pub const Rectangle = struct {
         if (velocity.x == 0 and velocity.y == 0)
             return null;
 
+        var expanded = self.grow(b.w, b.h);
         var collision = 
-            self.grow(b.w, b.h).vsRay(b.getMiddle(), velocity.mul_f64(delta))
+            expanded.vsRay(b.getMiddle(), velocity.mul_f64(delta))
             orelse return null;
+
+        collision.velocity = velocity;
 
         if (collision.near >= 0.0 and collision.near < 1.0)
             return collision;
@@ -204,11 +207,9 @@ pub const Rectangle = struct {
     pub fn solveCollision(self: Rectangle, b: Rectangle, velocity: Vector, delta: f64) ?Collision {
         var collision = b.vsKinematic(self, velocity, delta) orelse return null;
 
-        var v: Vector = velocity;
-        v.x = velocity.x + (collision.normal.x * @fabs(velocity.x) * (1-collision.near));
-        v.y = velocity.y + (collision.normal.y * @fabs(velocity.y) * (1-collision.near));
+        collision.velocity.x += collision.normal.x * @fabs(velocity.x) * (1-collision.near);
+        collision.velocity.y += collision.normal.y * @fabs(velocity.y) * (1-collision.near);
 
-        collision.velocity = v;
         return collision;
     }
 };

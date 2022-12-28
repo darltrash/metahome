@@ -1,3 +1,17 @@
+Meta:
+    This document is some sort of, "guide", for travellers who 
+    aim to understand this code, and/or make their own game 
+    engines based off my own journey.
+
+    It describes my thought process, my engine architecture, 
+    every detail I consider important while writing this engine.
+
+    It has been a long journey of making small game engines and
+    accumulating experience, failure after failure, so now
+    you can take a look at my brain and have a peek at the things
+    i've acummulated :)
+        -- Neil Wolfkid [December 28, 2022].
+
 Rendering:
     Every quad is stored into a vertex buffer as 4 preprocessed
     vertices, each vertex is in clip space and gets rendered 
@@ -15,6 +29,13 @@ Rendering:
     to work in Mali 400 systems, which have a very limited
     vertex shader instruction buffer.
 
+    The pixel/fragment shader contains a very simple gradient
+    mapper, which essentially maps the darkest tones of the
+    scene to a specific color, then the lightest to another
+    color, allowing for very interesting effects such as:
+
+        Night time, Sunsets, Space, Fake ambient lighting.
+
     The scale is gotten automatically for the game depending on
     window size, and ensures that the main game elements are
     always visible.
@@ -22,3 +43,85 @@ Rendering:
     Each tile is chunked to discriminate non-visible tiles
     without having to iterate through each tile.
 
+Collision:
+    Spatial-hashed, "Minkowski difference"-based collision
+    handling, extremely simple.
+
+    It works this way, you have a static rectangle (A) and
+    a dynamic rectangle (B), both of them unable of rotation.
+
+    You grow A by B's size, then cast a ray from B's position
+    to it's DESIRED position, then locate B's desired center 
+    position at where the ray hits first.
+
+    Repeat this process until every single object has been
+    processed.
+
+    To optimize this out, divide the world into chunks, then
+    compare only elements in the same chunks, and for good
+    measure, the neighbouring chunks too.
+
+Entity Handling:
+    I've used ECS for this particular project as it's the
+    fastest and tends to be the simplest way to manage tons
+    of objects.
+
+    I've decided NOT to make my own ECS system as it grew too
+    complicated very quickly, plus there were bugs regarding
+    code generation on the Zig version that I was using (0.10.0).
+
+    So i've just included silverquirl's FANTASTIC znt, which is
+    genuinely my favourite way to handle entities in Zig, very 
+    idiomatic and comfortable.
+
+    It works this way, I have a bunch of elements that CAN
+    contain things such as velocity, position, sprite, etc.
+    So I iterate over each item and treat them in a specific
+    way depending on their properties:
+
+        - If it has Velocity and Position, change the position
+            in the next frame by the Velocity
+
+        - If it has Sprite, render that sprite onto the screen
+  
+        - If it has a Collider, check collisions with other
+            elements.
+        
+        And so on...
+
+Dialogue Scripting:
+    Dialogues are based off "scripts", which are just JSON files
+    containing instructions of how should elements such as the
+    dialog box behave.
+
+    It works similarly to a very rudimentary virtual machine of
+    some sorts, it has instructions for saying things, and 
+    instructions for moving the "cursor" or "current instruction"
+    to another point in the script.
+
+        [
+            "Trapped in an infinite loop? MUAHAHAHA!",
+            "SUFFER THE CONSEQUENCES OF RUNNING ARBITRARY CODE!",
+            0
+        ]
+
+    "Questions" work in a very similar manner, they're a normal
+    dialog with options that lead to another instruction or continue
+    the normal flow of the "program".
+
+        [
+            "Hello, boy!",
+            {
+                "text": "Do you want to go back to the beggining?,
+                "options": [
+                    {"text": "Alright", goto: 0},
+                    {"text": "Nah"}
+                ]
+            },
+            "Well, here we are then!"
+        ]
+
+    I plan to create some sort of... language for this, like real
+    assembly, with an assembler and all! 
+    
+    It would be great if it was comptime, even!
