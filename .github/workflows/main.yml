@@ -7,7 +7,7 @@ jobs:
     steps:
        - uses: korandoru/setup-zig@v1.4.0
          with:
-            zig-version: 0.11.0
+            zig-version: master
 
        - uses: actions/checkout@v3
         
