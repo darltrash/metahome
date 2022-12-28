@@ -1,0 +1,37 @@
+name: GitHub Actions Demo
+run-name: Building metahome 
+on: [push]
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    outputs:
+           
+    steps:
+       - name: Setup Zig environment
+         uses: korandoru/setup-zig@v1.4.0
+         with:
+            zig-version: 0.11.0
+
+       - name: Clone repository
+         uses: actions/checkout@v3
+        
+       - name: Build metahome
+         shell: | 
+          cd metahome
+          
+          zig build -Drelease-small -Dcpu=baseline -Dtarget=x86_64-linux-gnu
+          mv zig-out/bin/metahome zig-out/bin/metahome.x86_64.linux
+          
+          zig build -Drelease-small -Dcpu=baseline -Dtarget=x86_64-windows-gnu
+          mv zig-out/bin/metahome.exe zig-out/bin/metahome.x86_64.windows.exe
+          
+          zig build -Drelease-small -Dsimon-mode   -Dtarget=x86_64-linux-gnu
+          mv zig-out/bin/metahome zig-out/bin/metahome.x86_64.simon.linux
+       
+       - name: Upload build artifacts
+         uses: actions/upload-artifact@v3.1.1
+         with:
+          name: "Binaries"
+          path: metahome/zig-out/bin/*
+          error: "aawy"
+       
