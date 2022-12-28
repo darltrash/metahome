@@ -58,6 +58,9 @@ pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
     if (entity.interact != null)
         entity.interact_anim = 0;
 
+    if (entity.collider != null)
+        entity.velocity = .{.y=0.01};
+
     return entity;
 }
 
@@ -161,25 +164,43 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                 };
                 var size = @as(f64, world.chunk_size);
 
+                // TODO: OPTIMIZE THIS HELLISH ABOMINATION.
                 {
+                    var colliders = std.ArrayList(extra.Collision).init(main.allocator);
                     var iter = map.eachChunk(collider.grow(size, size));
-                
+
                     while (iter.next()) | chunk | {
                         for (chunk.colls.items) | coll, key | {
                             if (coll.id == ent.id) { // Deletes itself
                                 _ = chunk.colls.swapRemove(key);
                                 continue;
                             }
+                        }
 
-                            var collision = collider.solveCollision(coll.collider, vel, delta);
+                        for (chunk.colls.items) | coll | {
+                            var collision = coll.collider.vsKinematic(collider, vel, delta);
                             if (collision != null) {
-                                vel = collision.?.velocity;
+                                var coll_now = collision.?;
+                                coll_now.collider = coll.collider;
+                                try colliders.append(coll_now);
                             }
                         }
+                    }
+
+                    var f = try colliders.toOwnedSlice();
+                    std.sort.insertionSort(extra.Collision, f, false, world.World.sortCollider);
+
+                    for (f) | coll | {
+                        var collision = collider.solveCollision(coll.collider, vel, delta);
+                        if (collision != null)
+                            vel = collision.?.velocity;
                     }
                 }
 
                 {
+                    collider.x += vel.x * delta;
+                    collider.y += vel.y * delta;
+
                     var iter = map.eachChunk(collider);
                 
                     while (try iter.nextOrCreate(main.allocator)) | chunk | {

@@ -78,7 +78,8 @@ pub const Collision = struct {
     normal: Vector = .{},
     at: Vector = .{},
     near: f64 = 0,
-    velocity: Vector = .{}
+    velocity: Vector = .{},
+    collider: Rectangle = .{}
 };
 
 pub const Rectangle = struct {
@@ -99,8 +100,10 @@ pub const Rectangle = struct {
 
     pub fn grow(self: Rectangle, width: f64, height: f64) Rectangle {
         return .{
-            .x = self.x - (width/2), .y = self.y - (height/2), 
-            .w = self.w + width, .h = self.y + height
+            .x = self.x - (width/2), 
+            .y = self.y - (height/2), 
+            .w = self.w + width, 
+            .h = self.h + height
         };
     }
 
@@ -140,6 +143,12 @@ pub const Rectangle = struct {
             .y = (self.y + self.h - start.y) * inv_dir.y
         };
 
+        if (std.math.isNan(near.x) or std.math.isNan(near.y))
+            return null;
+
+        if (std.math.isNan(near.y) or std.math.isNan(near.z))
+            return null;
+
         if (near.x > far.x) {
             var _x = near.x;
             near.x = far.x;
@@ -163,8 +172,8 @@ pub const Rectangle = struct {
 
         var collision: Collision = .{
             .at = .{
-                .x = start.x + hit_near * end.x,
-                .y = start.y + hit_near * end.y
+                .x = start.x + (hit_near * end.x),
+                .y = start.y + (hit_near * end.y)
             },
             .near = hit_near
         };

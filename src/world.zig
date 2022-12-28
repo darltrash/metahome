@@ -97,15 +97,14 @@ pub const World = struct {
     }
 
     pub fn getChunkOrCreate(self: *World, index: Index, allocator: std.mem.Allocator) !*Chunk {
-        var chunk = self.chunks.getPtr(index);
-        if (chunk == null)
+        if (self.chunks.getPtr(index) == null)
             try self.chunks.put(index, .{
                 .index = index,
                 .tiles = std.ArrayList(main.Sprite).init(allocator),
                 .colls = std.ArrayList(ColliderState).init(allocator)
             });
         
-        return chunk orelse self.chunks.getPtr(index) orelse undefined;
+        return self.chunks.getPtr(index) orelse undefined;
     }
 
     pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity) !void {
@@ -122,6 +121,10 @@ pub const World = struct {
                 });
             }
         }
+    }
+
+    pub fn sortCollider(_: bool, a: extra.Collision, b: extra.Collision) bool {
+        return a.near < b.near;
     }
 
     pub fn fromJSON(src: []const u8, allocator: std.mem.Allocator) !World {
@@ -174,6 +177,13 @@ fn loop(delta: f64) !void {
             for (chunk.colls.items) | item | {
                 main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
             }
+
+            main.outlineRect(.{
+                .x = @intToFloat(f64, chunk.index.x*chunk_size), 
+                .y = @intToFloat(f64, chunk.index.y*chunk_size),
+                .w = @intToFloat(f64, chunk_size), 
+                .h = @intToFloat(f64, chunk_size)
+            }, .{.a=0.3});
         }
     }
 
