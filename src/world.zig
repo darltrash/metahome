@@ -107,14 +107,14 @@ pub const World = struct {
         return self.chunks.getPtr(index) orelse unreachable;
     }
 
-    pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !void {
+    pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity, _: std.mem.Allocator) !void {
         var ent = ents.init(entity);
         var id = try self.scene.add(ent);
 
         if (ent.collider != null) {
             var iter = map.eachChunk(ent.collider.?);
 
-            while (try iter.nextOrCreate(allocator)) | chunk | {
+            while (iter.next()) | chunk | {
                 try chunk.colls.append(.{
                     .collider = ent.collider.?,
                     .id = id
