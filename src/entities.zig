@@ -91,7 +91,7 @@ const Animated = struct {
         }
     };
 
-    tracks: []const[]const extra.Rectangle = undefined,
+    tracks: []const[]const extra.Rectangle,
     track: usize = 0,
     frame: f64 = 0
 };

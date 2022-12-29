@@ -27,8 +27,8 @@ pub const Sprite = struct {
 };
 
 pub const State = struct {
-    init: *const (fn () anyerror!void)    = undefined,
-    loop: *const (fn (f64) anyerror!void) = undefined
+    init: *const (fn () anyerror!void),
+    loop: *const (fn (f64) anyerror!void)
 };
 
 var current_state: State = undefined;
@@ -251,10 +251,7 @@ export fn init() void {
         .context = sgapp.context()
     });
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
-    allocator = gpa.allocator();
-
-    input.setup(allocator) catch undefined;
+    input.setup(allocator) catch unreachable;
 
     // TODO: GET THIS FRICKEN THING TO WORKKKKKKKK GOD DAMMIT AUGHHHHH
     audio.init(allocator) catch unreachable;
@@ -265,10 +262,10 @@ export fn init() void {
         st.setup(sdtx_desc);
     }
 
-    atlas = assets.Image.fromFile("atl_main.png", allocator) catch undefined;
+    atlas = assets.Image.fromFile("atl_main.png", allocator) catch unreachable;
     bind.fs_images[shd.SLOT_tex] = atlas.handle;
 
-    main_font = font.generate(allocator) catch undefined;
+    main_font = font.generate(allocator) catch unreachable;
 
     bind.vertex_buffers[0] = sg.makeBuffer(.{
         .usage = .STREAM,
@@ -408,7 +405,11 @@ export fn event(ev: [*c]const sapp.Event) void {
     }
 }
 
+var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
+
 pub fn main() void {
+    allocator = gpa.allocator();
+
     sapp.run(.{
         .init_cb = init,
         .frame_cb = frame,

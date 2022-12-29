@@ -45,7 +45,7 @@ pub const World = struct {
     scene: ents.Scene,
 
     const ChunkIterator = struct {
-        parent: *World = undefined,
+        parent: *World,
         start: Index = .{},
         end: Index = .{},
         index: Index = .{},
