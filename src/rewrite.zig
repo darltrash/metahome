@@ -405,10 +405,8 @@ export fn event(ev: [*c]const sapp.Event) void {
     }
 }
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
-
 pub fn main() void {
-    allocator = gpa.allocator();
+    allocator = std.heap.c_allocator;
 
     sapp.run(.{
         .init_cb = init,

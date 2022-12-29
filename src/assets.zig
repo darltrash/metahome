@@ -40,11 +40,12 @@ pub const Image = struct {
                 .a = @floatToInt(u8, (@intToFloat(f64, origin[3])/65535) * 255)
             });
         }
-
-        img.data.subimage[0][0] = sg.asRange(pixels.toOwnedSlice() catch unreachable);
+        
+        img.data.subimage[0][0] = sg.asRange(pixels.items);
         o.handle = sg.makeImage(img);
 
         i.deinit(allocator);
+        pixels.deinit();
         
         return o;
     }

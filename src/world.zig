@@ -104,7 +104,7 @@ pub const World = struct {
                 .colls = std.ArrayList(ColliderState).init(allocator)
             });
         
-        return self.chunks.getPtr(index) orelse undefined;
+        return self.chunks.getPtr(index) orelse unreachable;
     }
 
     pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !void {

@@ -209,10 +209,8 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                             }
                         }
                     }
-
-                    var f: []extra.Collision = try colliders.toOwnedSlice();
                     //var last: extra.Rectangle = .{};
-                    for (f) | coll | {
+                    for (colliders.items) | coll | {
                         //if (last == coll.collider) continue;
                         //last = coll.collider;
 
@@ -223,6 +221,8 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                         if ((comptime main.DEBUGMODE) and ent.id == player)
                             main.rect(coll.collider, .{.g=0, .b=0, .a=0.1});
                     }
+
+                    colliders.deinit();
                 }
 
                 {
@@ -327,6 +327,8 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
     for (sprites) | sprite | {
         main.render(sprite);
     }
+
+    main.allocator.destroy(&sprites);
 
     if (false and comptime main.DEBUGMODE) {
         var ents = scene.iter(&.{ .position });
