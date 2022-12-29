@@ -318,17 +318,14 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
             }
         }
     }
-
-    var sprites = try buffer.toOwnedSlice();
-
     // the other sort just broke so i decided to use this one instead
-    _ = std.sort.insertionSort(main.Sprite, sprites, false, sorter);
+    _ = std.sort.insertionSort(main.Sprite, buffer.items, false, sorter);
 
-    for (sprites) | sprite | {
+    for (buffer.items) | sprite | {
         main.render(sprite);
     }
 
-    main.allocator.destroy(&sprites);
+    buffer.deinit();
 
     if (false and comptime main.DEBUGMODE) {
         var ents = scene.iter(&.{ .position });
