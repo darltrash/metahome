@@ -107,14 +107,14 @@ pub const World = struct {
         return self.chunks.getPtr(index) orelse undefined;
     }
 
-    pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity) !void {
+    pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !void {
         var ent = ents.init(entity);
         var id = try self.scene.add(ent);
 
         if (ent.collider != null) {
             var iter = map.eachChunk(ent.collider.?);
 
-            while (iter.next()) | chunk | {
+            while (try iter.nextOrCreate(allocator)) | chunk | {
                 try chunk.colls.append(.{
                     .collider = ent.collider.?,
                     .id = id
@@ -147,7 +147,7 @@ pub const World = struct {
         }
 
         for (raw.entities) | ent | {
-            try out.addEntity(ent);
+            try out.addEntity(ent, allocator);
         }
 
         return out;
@@ -174,9 +174,9 @@ fn loop(delta: f64) !void {
             main.render(tile);
         }
         if (comptime main.DEBUGMODE) {
-            for (chunk.colls.items) | item | {
-                main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
-            }
+            //for (chunk.colls.items) | item | {
+            //    main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
+            //}
 
             main.outlineRect(.{
                 .x = @intToFloat(f64, chunk.index.x*chunk_size), 

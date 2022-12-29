@@ -31,6 +31,13 @@ pub fn setup(alloc: std.mem.Allocator) !void {
     try register(.{.keyboard = sapp.Keycode.RIGHT}, .right);
     try register(.{.keyboard = sapp.Keycode.X},     .action);
     try register(.{.keyboard = sapp.Keycode.C},     .menu);
+
+    try register(.{.keyboard = sapp.Keycode.W }, .up);
+    try register(.{.keyboard = sapp.Keycode.S }, .down);
+    try register(.{.keyboard = sapp.Keycode.A }, .left);
+    try register(.{.keyboard = sapp.Keycode.D},  .right);
+    try register(.{.keyboard = sapp.Keycode.ENTER},        .action);
+    try register(.{.keyboard = sapp.Keycode.RIGHT_SHIFT},  .menu);
 }
 
 pub fn register(what: InputMap, to: InputKind) !void {

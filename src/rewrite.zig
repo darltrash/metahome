@@ -419,6 +419,7 @@ pub fn main() void {
         .icon = .{
             .sokol_default = true,
         },
+        .sample_count = 0,
         .window_title = "metahome"
     });
 }

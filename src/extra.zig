@@ -191,14 +191,14 @@ pub const Rectangle = struct {
         if (velocity.x == 0 and velocity.y == 0)
             return null;
 
-        var expanded = self.grow(b.w, b.h);
-        var collision = 
-            expanded.vsRay(b.getMiddle(), velocity.mul_f64(delta))
+        const expanded = self.grow(b.w, b.h);
+        const middle = b.getMiddle();
+        var collision = expanded.vsRay(middle, velocity.mul_f64(delta))
             orelse return null;
 
         collision.velocity = velocity;
 
-        if (collision.near >= 0.0 and collision.near < 1.0)
+        if (collision.near >= 0.0 and collision.near <= 1.0)
             return collision;
 
         return null;

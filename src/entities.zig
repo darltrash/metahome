@@ -22,10 +22,10 @@ pub const Entity = struct {
     position: extra.Vector,
     velocity: extra.Vector,
     collider: extra.Rectangle,
+    animated: Animated,
     interact: Interaction,
     interact_anim: f64,
     dialogue: []const u8,
-    animation: f64,
     camera_focus: bool,
     controller: Controller,
     collider_state: world.ColliderState,
@@ -47,7 +47,7 @@ pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
             .x = 0,  .y = 20, 
             .w = 16, .h = 4
         };
-        entity.animation = 0;
+        entity.animated = Animated.player;
     }
 
     if (entity.dialogue != null) {
@@ -59,8 +59,8 @@ pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
     if (entity.interact != null)
         entity.interact_anim = 0;
 
-    if (entity.collider != null)
-        entity.velocity = .{.y=0.01};
+    //if (entity.collider != null)
+    //    entity.velocity = .{.y=0.01};
 
     return entity;
 }
@@ -68,12 +68,32 @@ pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
 var player: ?znt.EntityId = 0;
 
 // TODO: Implement animation struct to ease out animation
-const Anim = struct {
-    pub const player = [3]extra.Rectangle{
-        .{.x=136+0,  .y=0, .w=16, .h=24}, 
-        .{.x=136+16, .y=0, .w=16, .h=24}, 
-        .{.x=136+32, .y=0, .w=16, .h=24}
+const Animated = struct {
+    pub const player: Animated = .{
+        .tracks = &[_][]const extra.Rectangle {
+            &[_]extra.Rectangle {
+                .{.x=136+0,  .y=0, .w=16, .h=24}, 
+                .{.x=136+16, .y=0, .w=16, .h=24}, 
+                .{.x=136+32, .y=0, .w=16, .h=24}
+            },
+
+            &[_]extra.Rectangle {
+                .{.x=136+0,  .y=24, .w=16, .h=24}, 
+                .{.x=136+16, .y=24, .w=16, .h=24}, 
+                .{.x=136+32, .y=24, .w=16, .h=24}
+            },
+
+            &[_]extra.Rectangle {
+                .{.x=136+0,  .y=48, .w=16, .h=24}, 
+                .{.x=136+16, .y=48, .w=16, .h=24}, 
+                .{.x=136+32, .y=48, .w=16, .h=24}
+            },
+        }
     };
+
+    tracks: []const[]const extra.Rectangle = undefined,
+    track: usize = 0,
+    frame: f64 = 0
 };
 
 fn getPosition(scene: Scene, entity: znt.EntityId) extra.Vector {
@@ -96,7 +116,7 @@ fn getPosition(scene: Scene, entity: znt.EntityId) extra.Vector {
 // TODO: Figure out how the hell do I remove entities ._.
 pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
     {
-        var ents = scene.iter(&.{ .velocity, .controller, .sprite, .animation });
+        var ents = scene.iter(&.{ .velocity, .controller, .sprite, .animated });
         while (ents.next()) | ent | {
             switch(ent.controller.*) {
                 .player => {
@@ -120,28 +140,27 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
 
                     var moving = v.distance(.{}) > 0;
                     if (moving) {
-                        if (ent.animation.* < 1)
-                            ent.animation.* = 1;
-                        ent.animation.* += delta * 3;
+                        if (ent.animated.*.frame < 1)
+                            ent.animated.*.frame = 1;
+                        ent.animated.*.frame += delta * 3;
 
-                        if (ent.animation.* >= 3)
-                            ent.animation.* = 1;
+                        if (ent.animated.*.frame >= 3)
+                            ent.animated.*.frame = 1;
                     } else 
-                        ent.animation.* = 0;
-
-                    var spr = Anim.player[@floatToInt(usize, ent.animation.*)];
+                        ent.animated.*.frame = 0;
 
                     if (v.y < 0) {
-                        spr.y += 48;
+                        ent.animated.*.track = 2;
+                    } else if (v.y > 0) {
+                        ent.animated.*.track = 0;
                     } else if (v.x != 0) {
-                        spr.y += 24;
+                        ent.animated.*.track = 1;
                     }
 
                     if (v.x != 0) {
                         ent.sprite.*.scale.x = std.math.sign(v.x);
                     }
 
-                    ent.sprite.*.origin = spr;
                     ent.sprite.*.from_center = true;
 
                     ent.velocity.* = v;
@@ -181,19 +200,28 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                         for (chunk.colls.items) | coll | {
                             var collision = coll.collider.vsKinematic(collider, vel, delta);
                             if (collision != null) {
-                                var coll_now = collision.?;
+                                var coll_now: extra.Collision = collision.?;
                                 coll_now.collider = coll.collider;
                                 try colliders.append(coll_now);
+                            } else { // TODO: FIX THIS HACK
+                                if (coll.collider.colliding(collider))
+                                    vel = .{};
                             }
                         }
                     }
 
-                    var f = try colliders.toOwnedSlice();
-
+                    var f: []extra.Collision = try colliders.toOwnedSlice();
+                    //var last: extra.Rectangle = .{};
                     for (f) | coll | {
+                        //if (last == coll.collider) continue;
+                        //last = coll.collider;
+
                         var collision = collider.solveCollision(coll.collider, vel, delta);
                         if (collision != null)
                             vel = collision.?.velocity;
+
+                        if ((comptime main.DEBUGMODE) and ent.id == player)
+                            main.rect(coll.collider, .{.g=0, .b=0, .a=0.1});
                     }
                 }
 
@@ -216,6 +244,15 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
 
             ent.position.* = pos;
             //if (scene.getOne(comptime comp: Component, eid: EntityId))
+        }
+    }
+
+    {
+        var ents = scene.iter(&.{ .sprite, .animated });
+        while (ents.next()) | ent | {
+            const track = ent.animated.tracks[ent.animated.track];
+            const frame = @mod(@floatToInt(usize, ent.animated.frame), track.len);
+            ent.sprite.*.origin = track[frame];
         }
     }
 
