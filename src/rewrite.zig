@@ -409,8 +409,8 @@ pub fn main() !void {
     allocator = std.heap.c_allocator;
 
     var icon: sapp.IconDesc = .{};
-    icon.images[0] = try assets.generateIcon(assets.@"icons/16.png", allocator);
-    icon.images[3] = try assets.generateIcon(assets.@"icons/256.png", allocator);
+    icon.images[0] = try assets.generateIcon(assets.@"icons/16.png",  allocator);
+    icon.images[1] = try assets.generateIcon(assets.@"icons/256.png", allocator);
 
     sapp.run(.{
         .init_cb = init,
