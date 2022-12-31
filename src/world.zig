@@ -111,9 +111,10 @@ pub const World = struct {
         var ent = ents.init(entity);
         var id = try self.scene.add(ent);
 
+        //_ = id;
         if (ent.collider != null) {
             var iter = map.eachChunk(ent.collider.?);
-
+        
             while (iter.next()) | chunk | {
                 try chunk.colls.append(.{
                     .collider = ent.collider.?,
@@ -178,12 +179,12 @@ fn loop(delta: f64) !void {
             //    main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
             //}
 
-            main.outlineRect(.{
-                .x = @intToFloat(f64, chunk.index.x*chunk_size), 
-                .y = @intToFloat(f64, chunk.index.y*chunk_size),
-                .w = @intToFloat(f64, chunk_size), 
-                .h = @intToFloat(f64, chunk_size)
-            }, .{.a=0.3});
+            //main.outlineRect(.{
+            //    .x = @intToFloat(f64, chunk.index.x*chunk_size), 
+            //    .y = @intToFloat(f64, chunk.index.y*chunk_size),
+            //    .w = @intToFloat(f64, chunk_size), 
+            //    .h = @intToFloat(f64, chunk_size)
+            //}, .{.a=0.3});
         }
     }
 

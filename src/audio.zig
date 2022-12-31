@@ -5,6 +5,8 @@ const std = @import("std");
 const c = @import("c");
 const assets = @import("assets.zig");
 
+pub var volume: f32 = 0;
+
 pub const Source = struct {
     loop: bool = false,
     length: u64,
@@ -56,7 +58,7 @@ fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
             vol *= @floatCast(f32, source.position.?.distance(main.real_camera));
 
         for (a) | val, k | {
-            buffer[k] += val * vol;
+            buffer[k] += val * vol * volume;
         }
     }
 

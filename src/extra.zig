@@ -91,9 +91,16 @@ pub const Rectangle = struct {
     x: f64 = 0, y: f64 = 0,
     w: f64 = 0, h: f64 = 0,
 
+    pub fn equals(a: Rectangle, b: Rectangle) bool {
+        return a.x==b.x and 
+               a.y==b.y and
+               a.w==b.w and
+               a.h==b.h;
+    }
+
     pub fn colliding(self: Rectangle, other: Rectangle) bool {
         return self.x  < (other.x+other.w) and
-               other.x < (self.x+self.w) and
+               other.x < (self.x+self.w)   and
                self.y  < (other.y+other.h) and
                other.y < (self.y+self.h);
     }

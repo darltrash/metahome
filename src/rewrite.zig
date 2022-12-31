@@ -408,6 +408,8 @@ export fn event(ev: [*c]const sapp.Event) void {
 pub fn main() void {
     allocator = std.heap.c_allocator;
 
+    // GAME IS CANCELLED.....
+
     sapp.run(.{
         .init_cb = init,
         .frame_cb = frame,

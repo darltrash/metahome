@@ -44,8 +44,8 @@ pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
         entity.velocity = .{};
         entity.camera_focus = true;
         entity.collider = .{
-            .x = 0,  .y = 20, 
-            .w = 16, .h = 4
+            .x = 3,  .y = 20, 
+            .w = 10, .h = 4
         };
         entity.animated = Animated.player;
     }
@@ -59,15 +59,14 @@ pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
     if (entity.interact != null)
         entity.interact_anim = 0;
 
-    //if (entity.collider != null)
-    //    entity.velocity = .{.y=0.01};
+    if (entity.collider != null)
+        entity.velocity = .{.y=0.01};
 
     return entity;
 }
 
 var player: ?znt.EntityId = 0;
 
-// TODO: Implement animation struct to ease out animation
 const Animated = struct {
     pub const player: Animated = .{
         .tracks = &[_][]const extra.Rectangle {
@@ -182,7 +181,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                     .w = raw_coll.?.w,
                     .h = raw_coll.?.h
                 };
-                var size = @as(f64, world.chunk_size)*2;
+                var size = @as(f64, world.chunk_size);
 
                 // TODO: OPTIMIZE THIS HELLISH ABOMINATION.
                 {
@@ -209,10 +208,12 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                             }
                         }
                     }
-                    //var last: extra.Rectangle = .{};
+
+                    var last: extra.Rectangle = .{};
                     for (colliders.items) | coll | {
-                        //if (last == coll.collider) continue;
-                        //last = coll.collider;
+                        if (last.equals(coll.collider)) continue;
+
+                        last = coll.collider;
 
                         var collision = collider.solveCollision(coll.collider, vel, delta);
                         if (collision != null)
@@ -295,7 +296,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
 
             var pos = ent.position.*;
             pos.x = middle.x - 8;
-            //pos.y += 0.1;
+            pos.y += 0.1;
             pos.z = ent.interact_anim.* * -12;
 
             try buffer.append(.{
@@ -327,22 +328,36 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
 
     buffer.deinit();
 
-    if (false and comptime main.DEBUGMODE) {
-        var ents = scene.iter(&.{ .position });
-        while (ents.next()) | ent | {
-            main.rect(.{
-                .x = ent.position.x-1,
-                .y = ent.position.y-1,
-                .w = 2, .h = 2
-            }, .{.a=0.4});
+    if (comptime main.DEBUGMODE) {
+        {
+            var ents = scene.iter(&.{ .position });
+            while (ents.next()) | ent | {
+                main.rect(.{
+                    .x = ent.position.x-1,
+                    .y = ent.position.y-1,
+                    .w = 2, .h = 2
+                }, .{.a=0.4});
 
-            var p = getPosition(scene, ent.id);
+                var p = getPosition(scene, ent.id);
 
-            main.rect(.{
-                .x = p.x-1,
-                .y = p.y-1,
-                .w = 2, .h = 2
-            }, .{});
+                main.rect(.{
+                    .x = p.x-1,
+                    .y = p.y-1,
+                    .w = 2, .h = 2
+                }, .{});
+            }
+        }
+
+        {
+            var ents = scene.iter(&.{ .position, .collider });
+            while (ents.next()) | ent | {
+                main.rect(.{
+                    .x = ent.collider.x + ent.position.x,
+                    .y = ent.collider.y + ent.position.y,
+                    .w = ent.collider.w, 
+                    .h = ent.collider.h
+                }, .{.a=0.4});
+            }
         }
     }
 
