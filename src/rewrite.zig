@@ -405,10 +405,12 @@ export fn event(ev: [*c]const sapp.Event) void {
     }
 }
 
-pub fn main() void {
+pub fn main() !void {
     allocator = std.heap.c_allocator;
 
-    // GAME IS CANCELLED.....
+    var icon: sapp.IconDesc = .{};
+    icon.images[0] = try assets.generateIcon(assets.@"icons/16.png", allocator);
+    icon.images[3] = try assets.generateIcon(assets.@"icons/256.png", allocator);
 
     sapp.run(.{
         .init_cb = init,
@@ -417,9 +419,7 @@ pub fn main() void {
         .event_cb = event,
         .width = 815,
         .height = 550,
-        .icon = .{
-            .sokol_default = true,
-        },
+        .icon = icon,
         .sample_count = 0,
         .window_title = "metahome"
     });
