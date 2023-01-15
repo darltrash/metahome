@@ -53,7 +53,7 @@ pub var height: f64 = 0;
 var main_font: font.Font = undefined;
 
 pub var timer: f64 = 0;
-var current_vertex: usize = 0;
+var current_quad: usize = 0;
 var vertices: [quad_amount * 36]f32 = undefined;
 
 pub var real_camera: extra.Vector = .{};
@@ -86,7 +86,7 @@ fn posNoise(x: f64, y: f64, wobble: f64) [2]f32 {
 
 pub fn render(spr: Sprite) void {
     // Horrid, I know. 
-    current_vertex %= quad_amount;
+    current_quad %= quad_amount;
 
     var sprite = spr;
 
@@ -141,9 +141,9 @@ pub fn render(spr: Sprite) void {
         p4[0], p4[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.x), @floatCast(f32, u.y)
     };
 
-    std.mem.copy(f32, vertices[(current_vertex * 36)..], &tmp_vertices);
+    std.mem.copy(f32, vertices[(current_quad * 36)..], &tmp_vertices);
 
-    current_vertex += 1;
+    current_quad += 1;
 }
 
 pub fn background(color: ?extra.Color) extra.Color {
@@ -339,7 +339,7 @@ export fn frame() void {
     camera.z = @max(s, 1);
     real_camera = real_camera.lerp(camera, delta * 16);
 
-    current_vertex = 0;
+    current_quad = 0;
 
     if (s > 0)
         current_state.loop(delta) catch unreachable
@@ -359,6 +359,13 @@ export fn frame() void {
     };
     uniforms.color_a.a = filter;
     
+    {
+        var c = real_camera;
+        real_camera = .{.z=real_camera.z, .x=-(width/real_camera.z/2), .y=-(height/real_camera.z/2)};
+        print(.{.x=3, .y=3}, "Exiting...", null, 10000, .{}, null) catch unreachable;
+        real_camera = c;
+    }
+
     sg.updateBuffer(bind.vertex_buffers[0], sg.asRange(&vertices));
 
     sg.beginDefaultPass(pass_action, sapp.width(), sapp.height());
@@ -367,7 +374,7 @@ export fn frame() void {
 
     sg.applyUniforms(sg.ShaderStage.FS, 0, sg.asRange(&uniforms));
 
-    sg.draw(0, @intCast(u32, current_vertex) * 6, 1);
+    sg.draw(0, @intCast(u32, current_quad) * 6, 1);
     sg.endPass();
 
     if (comptime DEBUGMODE) {
@@ -375,7 +382,9 @@ export fn frame() void {
         st.color1i(0xffffffff);
         st.origin(2, 2);
         st.font(0);
-        st.print("Quads: {}/{} ({}b)", .{current_vertex, quad_amount, @sizeOf(f32)*current_vertex});
+
+        var size: f32 = (@intToFloat(f32, @sizeOf(f32)*current_quad)*36)/1024;
+        st.print("Quads: {}/{} ({d:.01}KB)", .{current_quad, quad_amount, size});
         st.crlf();
         st.print("Camera: [{d:.1}, {d:.1}, {d:.1}]", .{real_camera.x, real_camera.y, real_camera.z});
         st.crlf();
@@ -417,8 +426,8 @@ pub fn main() !void {
         .frame_cb = frame,
         .cleanup_cb = cleanup,
         .event_cb = event,
-        .width = 815,
-        .height = 550,
+        .width = 800,
+        .height = 500,
         .icon = icon,
         .sample_count = 0,
         .window_title = "metahome"

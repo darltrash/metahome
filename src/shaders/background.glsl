@@ -33,11 +33,10 @@ float rand(vec2 co){
 
 void main() {
     vec2 fv = floor(uv*resolution)/resolution;
-    float noise = (rand(fv) - 0.5) * (0.05);
+    float noise = (rand(fv) - 0.5) * 0.05;
     frag_color = mix(color_a, color_b, fv.y + noise);
 }
 @end
 
 /* quad shader program */
 @program quad vs fs
-

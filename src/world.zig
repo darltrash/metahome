@@ -32,8 +32,8 @@ pub const ColliderState = struct {
     collider: extra.Rectangle
 };
 
-pub const World = struct {
-    const Proto = struct {
+pub const Level = struct {
+    const ProtoMap = []struct {
         width: u32,
         height: u32,
         uid: u32,
@@ -45,7 +45,7 @@ pub const World = struct {
     scene: ents.Scene,
 
     const ChunkIterator = struct {
-        parent: *World,
+        parent: *Level,
         start: Index = .{},
         end: Index = .{},
         index: Index = .{},
@@ -82,7 +82,7 @@ pub const World = struct {
         }
     };
 
-    pub fn eachChunk(self: *World, r: extra.Rectangle) ChunkIterator {
+    pub fn eachChunk(self: *Level, r: extra.Rectangle) ChunkIterator {
         var start = Index.fromVector(.{.x=r.x, .y=r.y});
         return ChunkIterator {
             .start = start,
@@ -92,32 +92,38 @@ pub const World = struct {
         };
     }
 
-    pub fn getChunk(self: *World, index: Index) ?*Chunk {
+    pub fn getChunk(self: *Level, index: Index) ?*Chunk {
         return self.chunks.getPtr(index);
     }
 
-    pub fn getChunkOrCreate(self: *World, index: Index, allocator: std.mem.Allocator) !*Chunk {
-        if (self.chunks.getPtr(index) == null)
-            try self.chunks.put(index, .{
-                .index = index,
-                .tiles = std.ArrayList(main.Sprite).init(allocator),
-                .colls = std.ArrayList(ColliderState).init(allocator)
-            });
-        
-        return self.chunks.getPtr(index) orelse unreachable;
+    pub fn getChunkOrCreate(self: *Level, index: Index, allocator: std.mem.Allocator) !*Chunk {
+        var out = self.chunks.getPtr(index);
+
+        if (out != null) return out.?;
+
+        try self.chunks.put(index, .{
+            .index = index,
+            .tiles = std.ArrayList(main.Sprite).init(allocator),
+            .colls = std.ArrayList(ColliderState).init(allocator)
+        });
+        return self.getChunkOrCreate(index, allocator);
     }
 
-    pub fn addEntity(self: *World, entity: ents.Scene.OptionalEntity, _: std.mem.Allocator) !void {
+    pub fn addEntity(self: *Level, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !void {
         var ent = ents.init(entity);
         var id = try self.scene.add(ent);
 
         //_ = id;
         if (ent.collider != null) {
-            var iter = map.eachChunk(ent.collider.?);
+            var collider = ent.collider.?;
+            collider.x += ent.position.?.x;
+            collider.y += ent.position.?.y;
+
+            var iter = self.eachChunk(collider);
         
-            while (iter.next()) | chunk | {
+            while (try iter.nextOrCreate(allocator)) | chunk | {
                 try chunk.colls.append(.{
-                    .collider = ent.collider.?,
+                    .collider = collider,
                     .id = id
                 });
             }
@@ -128,37 +134,46 @@ pub const World = struct {
         return a.near < b.near;
     }
 
-    pub fn fromJSON(src: []const u8, allocator: std.mem.Allocator) !World {
-        var out: World = .{
-            .chunks = std.AutoHashMap(Index, Chunk).init(allocator),
-            .scene = ents.Scene.init(main.allocator)
-        };
-
+    pub fn fromJSON(src: []const u8, allocator: std.mem.Allocator) ![]Level {
+        var out = std.ArrayList(Level).init(allocator);
         var tokens = std.json.TokenStream.init(src);
-        var raw = try std.json.parse(Proto, &tokens, .{ .allocator = allocator, .ignore_unknown_fields = true });
+        var raw = try std.json.parse(ProtoMap, &tokens, .{ .allocator = allocator, .ignore_unknown_fields = true });
 
-        for (raw.tiles) | tile | {
-            var t = main.Sprite {
-                .position = .{.x=tile[0], .y=tile[1]},
-                .origin = .{.x=tile[2], .y=tile[3], .w=tile[4], .h=tile[5]}
+        for (raw) | raw_level | {
+            var out_level: Level = .{
+                .chunks = std.AutoHashMap(Index, Chunk).init(allocator),
+                .scene = ents.Scene.init(main.allocator)
             };
-            
-            var chunk = try out.getChunkOrCreate(Index.fromVector(t.position), allocator);
-            try chunk.tiles.append(t);
+
+            for (raw_level.tiles) | tile | {
+                var t = main.Sprite {
+                    .position = .{.x=tile[0], .y=tile[1]},
+                    .origin = .{.x=tile[2], .y=tile[3], .w=tile[4], .h=tile[5]}
+                };
+                
+                var chunk = try out_level.getChunkOrCreate(Index.fromVector(t.position), allocator);
+                try chunk.tiles.append(t);
+            }
+
+            for (raw_level.entities) | ent | {
+                try out_level.addEntity(ent, allocator);
+            }
+
+            try out.append(out_level);
         }
 
-        for (raw.entities) | ent | {
-            try out.addEntity(ent, allocator);
-        }
-
-        return out;
+        return out.toOwnedSlice();
     }
 };
 
-var map: World = undefined;
+var map: []Level = undefined;
+var level: *Level = undefined;
 
 fn init() !void {
-    map = try World.fromJSON(assets.@"map_test.json", main.allocator);
+    map = try Level.fromJSON(assets.@"map_test.json", main.allocator);
+    level = &map[0];
+    try dialog.init(main.allocator);
+    try dialog.loadScript(assets.scripts.get("env_door_enter").?);
 }
 
 fn loop(delta: f64) !void {
@@ -169,7 +184,7 @@ fn loop(delta: f64) !void {
         .h = main.height / main.real_camera.z
     };
 
-    var iter = map.eachChunk(cam);
+    var iter = level.eachChunk(cam);
     while (iter.next()) | chunk | {
         for (chunk.tiles.items) | tile | {
             main.render(tile);
@@ -188,7 +203,7 @@ fn loop(delta: f64) !void {
         }
     }
 
-    try ents.process(map.scene, &map, delta);
+    try ents.process(level.scene, level, delta);
 
     try dialog.loop(delta);
 }

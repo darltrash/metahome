@@ -8,7 +8,7 @@ const assets = @import("assets.zig");
 var at: usize = 0;
 var cursor: f64 = 0;
 var text: []const u8 = "";
-var instructions: []Instruction = undefined;
+var instructions: std.ArrayList(Instruction) = undefined;
 var options: ?[]Option = null;
 var selected: i8 = 0;
 var selected_float: f64 = 0;
@@ -34,14 +34,14 @@ const Instruction = union(InstructionTypes) {
 };
 
 fn advance() void {
-    if (at >= instructions.len) {
+    if (at >= instructions.items.len) {
         active = false;
         return;
     }
 
     cursor = 0;
 
-    switch (instructions[at]) {
+    switch (instructions.items[at]) {
         .say => |t| {
             text = t;
             at += 1;
@@ -58,22 +58,25 @@ fn advance() void {
             advance();
         },
         .set => unreachable,
-        .end => at = instructions.len + 1  
+        .end => at = instructions.items.len + 1  
     }
 }
 
 pub fn loadScript(source: []const u8) !void {
     var tokens = std.json.TokenStream.init(source);
-    instructions = try std.json.parse([]Instruction, &tokens, .{ .allocator = main.allocator });
+    var instr = try std.json.parse([]Instruction, &tokens, .{ .allocator = main.allocator });
+    try instructions.appendSlice(instr);
     at = 0;
     active = true;
+    options = null;
     advance();
 }
 
 pub var active: bool = false;
 var position: f64 = 1;
 
-fn init() !void {
+pub fn init(allocator: std.mem.Allocator) !void {
+    instructions = std.ArrayList(Instruction).init(allocator);
 }
 
 fn frame(r: extra.Rectangle) void {
@@ -172,4 +175,3 @@ pub const state = main.State {
     .init = &init,
     .loop = &loop
 };
-

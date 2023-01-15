@@ -59,9 +59,6 @@ pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
     if (entity.interact != null)
         entity.interact_anim = 0;
 
-    if (entity.collider != null)
-        entity.velocity = .{.y=0.01};
-
     return entity;
 }
 
@@ -113,8 +110,8 @@ fn getPosition(scene: Scene, entity: znt.EntityId) extra.Vector {
 
 // TODO: Do fixed timesteps 
 // TODO: Figure out how the hell do I remove entities ._.
-pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
-    {
+pub fn process(scene: Scene, map: *world.Level, delta: f64) !void {
+    { // Controller
         var ents = scene.iter(&.{ .velocity, .controller, .sprite, .animated });
         while (ents.next()) | ent | {
             switch(ent.controller.*) {
@@ -141,7 +138,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
                     if (moving) {
                         if (ent.animated.*.frame < 1)
                             ent.animated.*.frame = 1;
-                        ent.animated.*.frame += delta * 3;
+                        ent.animated.*.frame += delta * 5;
 
                         if (ent.animated.*.frame >= 3)
                             ent.animated.*.frame = 1;
@@ -168,7 +165,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
         }
     }
 
-    {
+    { // Velocity + Collision
         var ents = scene.iter(&.{ .position, .velocity });
         while (ents.next()) | ent | {
             var vel = ent.velocity.*;
@@ -248,7 +245,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
         }
     }
 
-    {
+    { // Animation
         var ents = scene.iter(&.{ .sprite, .animated });
         while (ents.next()) | ent | {
             const track = ent.animated.tracks[ent.animated.track];
@@ -258,7 +255,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
     }
 
     var buffer = std.ArrayList(main.Sprite).init(main.allocator);
-    {
+    { // Drawing 
         var ents = scene.iter(&.{ .sprite, .position });
         while (ents.next()) | ent | {
             var spr = ent.sprite.*;
@@ -272,7 +269,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
         }
     }
 
-    {
+    { // NPC/Dialogue
         var ents = scene.iter(&.{ .interact, .position, .interact_anim });
         while (ents.next()) | ent | {
             var near = false;
@@ -328,7 +325,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
 
     buffer.deinit();
 
-    if (comptime main.DEBUGMODE) {
+    if (false and comptime main.DEBUGMODE) { // DEBUG 
         {
             var ents = scene.iter(&.{ .position });
             while (ents.next()) | ent | {
@@ -361,7 +358,7 @@ pub fn process(scene: Scene, map: *world.World, delta: f64) !void {
         }
     }
 
-    {
+    { // CAMERA
         var ents = scene.iter(&.{ .camera_focus, .position, .sprite });
         while (ents.next()) | ent | {
             main.camera = ent.position.*;

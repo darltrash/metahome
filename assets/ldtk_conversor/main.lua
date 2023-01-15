@@ -6,8 +6,8 @@ local f = assert(io.open(filename, "r"), "FILE DOES NOT EXIST.")
 local map = json.decode(f:read("*all"))
 f:close()
 
---for _, level in ipairs(map.levels) do
-    local level = map.levels[1]
+local out_map = {}
+for _, level in ipairs(map.levels) do
     local out_level = {
         width = level.pxWid,
         height = level.pxHei,
@@ -15,6 +15,7 @@ f:close()
         tiles = {},
         entities = {}
     }
+    table.insert(out_map, out_level)
 
     for _, layer in ipairs(level.layerInstances) do
         if layer.__type == "Tiles" then
@@ -65,8 +66,8 @@ f:close()
 
         end
     end
---end
+end
 
 local f = assert(io.open(filename:sub(1, #filename-5)..".json", "w+"), "OUTPUT FILE COULD NOT BE OPENED.")
-f:write(json.encode(out_level))
+f:write(json.encode(out_map))
 f:close()
