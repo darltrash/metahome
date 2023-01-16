@@ -92,7 +92,7 @@ const Animated = struct {
     frame: f64 = 0
 };
 
-fn getPosition(scene: Scene, entity: znt.EntityId) extra.Vector {
+fn getPosition(scene: *Scene, entity: znt.EntityId) extra.Vector {
     var pos: extra.Vector = .{};
     var _pos = scene.getOne(.position, entity);
     if (_pos != null) 
@@ -110,7 +110,7 @@ fn getPosition(scene: Scene, entity: znt.EntityId) extra.Vector {
 
 // TODO: Do fixed timesteps 
 // TODO: Figure out how the hell do I remove entities ._.
-pub fn process(scene: Scene, map: *world.Level, delta: f64) !void {
+pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
     { // Controller
         var ents = scene.iter(&.{ .velocity, .controller, .sprite, .animated });
         while (ents.next()) | ent | {
@@ -313,6 +313,7 @@ pub fn process(scene: Scene, map: *world.Level, delta: f64) !void {
             ) {
                 _ = try dialog.loadScript(assets.scripts.get(dialogue.?.*).?);
                 ent.interact.* = .occupied;
+                try scene.del(ent.id);
             }
         }
     }

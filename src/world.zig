@@ -116,6 +116,7 @@ pub const Level = struct {
     }
 
     pub fn addEntity(self: *Level, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !void {
+        std.log.info("{?s}", .{entity.dialogue});
         var ent = ents.init(entity);
         var id = try self.scene.add(ent);
 
@@ -213,7 +214,7 @@ fn loop(delta: f64) !void {
         }
     }
 
-    try ents.process(level.scene, level, delta);
+    try ents.process(&level.scene, level, delta);
 
     try dialog.loop(delta);
 }

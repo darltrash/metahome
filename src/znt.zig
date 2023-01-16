@@ -175,6 +175,14 @@ pub fn Scene(comptime EntityType: type, comptime opts: SceneOptions) type {
             return eid;
         }
 
+        pub fn del(self: *Self, id: EntityId) !void {
+            var element = self.id_map.get(id) 
+                orelse return error.NotExists;
+            _ = self.id_map.remove(id);
+
+            try self.entities.del(element);
+        }
+
         fn genEid(self: *Self) EntityId {
             var id = self.rng.random().int(EntityId);
             // Set UUID variant and version
@@ -271,7 +279,7 @@ pub fn Scene(comptime EntityType: type, comptime opts: SceneOptions) type {
                     var entity: PartialEntity(required_components) = undefined;
                     search: while (true) {
                         const res = self.it.next() orelse return null;
-                        const ei = self.scene.entities.get(res.entity).?;
+                        const ei = self.scene.entities.get(res.entity) orelse continue :search;
 
                         // Retrieve all components
                         inline for (required_components) |comp_id, i| {
@@ -344,9 +352,11 @@ fn DataStore(comptime T: type) type {
         }
 
         /// addr must be valid
-        pub fn del(self: *Self, addr: Addr) void {
-            std.debug.assert(self.entries[addr] == .alloced);
-            self.entries[addr] = .{ .free = self.free };
+        pub fn del(self: *Self, addr: Addr) !void {
+            if (self.entries.items[addr] != .alloced)
+                return error.NotExists;
+
+            self.entries.items[addr] = .{ .free = self.free };
             self.free = addr;
             self.count -= 1;
         }

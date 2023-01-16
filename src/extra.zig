@@ -58,17 +58,27 @@ pub const Vector = struct {
     }
 
     pub fn add(a: Vector, b: Vector) Vector {
-        return .{ .x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z };
+        return .{ 
+            .x = a.x + b.x, 
+            .y = a.y + b.y, 
+            .z = a.z + b.z 
+        };
     }
 
     pub fn mul_f64(a: Vector, b: f64) Vector {
-        return .{ .x = a.x * b, .y = a.y * b, .z = a.z * b };
+        return .{ 
+            .x = a.x * b, 
+            .y = a.y * b, 
+            .z = a.z * b 
+        };
     }
 };
 
 pub const Collision = struct { 
-    normal: Vector = .{}, at: Vector = .{}, 
-    near: f64 = 0, velocity: Vector = .{}, 
+    normal: Vector = .{}, 
+    at: Vector = .{}, 
+    near: f64 = 0, 
+    velocity: Vector = .{}, 
     collider: Rectangle = .{} 
 };
 
@@ -176,7 +186,7 @@ pub const Rectangle = struct {
 
         if (near.x > near.y)
             collision.normal.x = if (inv_dir.x < 0) 1 else -1
-            
+
         else if (near.x < near.y)
             collision.normal.y = if (inv_dir.y < 0) 1 else -1;
 
