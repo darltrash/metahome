@@ -6,7 +6,7 @@ const CrossTarget = std.zig.CrossTarget;
 const Mode = std.builtin.Mode;
 
 pub const Backend = enum {
-    auto,   // Windows: D3D11, macOS/iOS: Metal, otherwise: GL
+    auto, // Windows: D3D11, macOS/iOS: Metal, otherwise: GL
     d3d11,
     metal,
     gl,
@@ -15,23 +15,17 @@ pub const Backend = enum {
     wgpu,
 };
 
-pub const Config = struct {
-    backend: Backend = .auto,
-    force_egl: bool = false,
-
-    enable_x11: bool = true, 
-    enable_wayland: bool = false
-};
+pub const Config = struct { backend: Backend = .auto, force_egl: bool = false, enable_x11: bool = true, enable_wayland: bool = false };
 
 // build sokol into a static library
 pub fn buildSokol(b: *Builder, target: CrossTarget, mode: Mode, config: Config, comptime prefix_path: []const u8) *LibExeObjStep {
     const lib = b.addStaticLibrary("sokol", null);
     lib.setBuildMode(mode);
     lib.setTarget(target);
-    
+
     lib.linkLibC();
     const sokol_path = prefix_path ++ "src/sokol/c/";
-    const csources = [_][]const u8 {
+    const csources = [_][]const u8{
         "sokol_app.c",
         "sokol_gfx.c",
         "sokol_time.c",
@@ -42,9 +36,13 @@ pub fn buildSokol(b: *Builder, target: CrossTarget, mode: Mode, config: Config, 
     };
     var _backend = config.backend;
     if (_backend == .auto) {
-        if (lib.target.isDarwin()) { _backend = .metal; }
-        else if (lib.target.isWindows()) { _backend = .d3d11; }
-        else { _backend = .gl; }
+        if (lib.target.isDarwin()) {
+            _backend = .metal;
+        } else if (lib.target.isWindows()) {
+            _backend = .d3d11;
+        } else {
+            _backend = .gl;
+        }
     }
     const backend_option = switch (_backend) {
         .d3d11 => "-DSOKOL_D3D11",
@@ -58,7 +56,7 @@ pub fn buildSokol(b: *Builder, target: CrossTarget, mode: Mode, config: Config, 
 
     if (lib.target.isDarwin()) {
         inline for (csources) |csrc| {
-            lib.addCSourceFile(sokol_path ++ csrc, &[_][]const u8{"-ObjC", "-DIMPL", backend_option});
+            lib.addCSourceFile(sokol_path ++ csrc, &[_][]const u8{ "-ObjC", "-DIMPL", backend_option });
         }
         lib.linkFramework("Cocoa");
         lib.linkFramework("QuartzCore");
@@ -66,8 +64,7 @@ pub fn buildSokol(b: *Builder, target: CrossTarget, mode: Mode, config: Config, 
         if (.metal == _backend) {
             lib.linkFramework("MetalKit");
             lib.linkFramework("Metal");
-        }
-        else {
+        } else {
             lib.linkFramework("OpenGL");
         }
     } else {
@@ -76,7 +73,7 @@ pub fn buildSokol(b: *Builder, target: CrossTarget, mode: Mode, config: Config, 
         var wayland_flag = if (!config.enable_wayland) "-DSOKOL_DISABLE_WAYLAND" else "";
 
         inline for (csources) |csrc| {
-            lib.addCSourceFile(sokol_path ++ csrc, &[_][]const u8{"-DIMPL", backend_option, egl_flag, x11_flag, wayland_flag});
+            lib.addCSourceFile(sokol_path ++ csrc, &[_][]const u8{ "-DIMPL", backend_option, egl_flag, x11_flag, wayland_flag });
         }
 
         if (lib.target.isLinux()) {
@@ -105,10 +102,9 @@ pub fn buildSokol(b: *Builder, target: CrossTarget, mode: Mode, config: Config, 
                 lib.linkSystemLibrary("xkbcommon");
             }
             if (link_egl) {
-                lib.linkSystemLibrary("egl");  
-            } 
-        }
-        else if (lib.target.isWindows()) {
+                lib.linkSystemLibrary("egl");
+            }
+        } else if (lib.target.isWindows()) {
             lib.linkSystemLibrary("kernel32");
             lib.linkSystemLibrary("user32");
             lib.linkSystemLibrary("gdi32");
@@ -145,27 +141,7 @@ pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
     const sokol = buildSokol(b, target, mode, config, "");
-    const examples = .{
-        "clear",
-        "triangle",
-        "quad",
-        "bufferoffsets",
-        "cube",
-        "noninterleaved",
-        "texcube",
-        "blend",
-        "offscreen",
-        "instancing",
-        "mrt",
-        "saudio",
-        "sgl",
-        "sgl-context",
-        "sgl-points",
-        "debugtext",
-        "debugtext-print",
-        "debugtext-userfont",
-        "shapes"
-    };
+    const examples = .{ "clear", "triangle", "quad", "bufferoffsets", "cube", "noninterleaved", "texcube", "blend", "offscreen", "instancing", "mrt", "saudio", "sgl", "sgl-context", "sgl-points", "debugtext", "debugtext-print", "debugtext-userfont", "shapes" };
     inline for (examples) |example| {
         buildExample(b, target, mode, sokol, example);
     }
@@ -201,13 +177,7 @@ fn buildShaders(b: *Builder) void {
     const shdc_path = sokol_tools_bin_dir ++ optional_shdc.?;
     const shdc_step = b.step("shaders", "Compile shaders (needs ../sokol-tools-bin)");
     inline for (shaders) |shader| {
-        const cmd = b.addSystemCommand(&.{
-            shdc_path,
-            "-i", shaders_dir ++ shader,
-            "-o", shaders_dir ++ shader ++ ".zig",
-            "-l", "glsl330:metal_macos:hlsl4",
-            "-f", "sokol_zig"
-        });
+        const cmd = b.addSystemCommand(&.{ shdc_path, "-i", shaders_dir ++ shader, "-o", shaders_dir ++ shader ++ ".zig", "-l", "glsl330:metal_macos:hlsl4", "-f", "sokol_zig" });
         shdc_step.dependOn(&cmd.step);
     }
 }

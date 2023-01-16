@@ -2,10 +2,10 @@
 //  saudio.zig
 //  Test sokol-audio zig bindings
 //------------------------------------------------------------------------------
-const sg     = @import("sokol").gfx;
-const sapp   = @import("sokol").app;
+const sg = @import("sokol").gfx;
+const sapp = @import("sokol").app;
 const saudio = @import("sokol").audio;
-const sgapp  = @import("sokol").app_gfx_glue;
+const sgapp = @import("sokol").app_gfx_glue;
 
 const NumSamples = 32;
 
@@ -19,13 +19,17 @@ const state = struct {
 export fn init() void {
     sg.setup(.{ .context = sgapp.context() });
     saudio.setup(.{});
-    state.pass_action.colors[0] = .{ .action=.CLEAR, .value = .{ .r=1, .g=0.5, .b=0, .a=1 }};
+    state.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r = 1, .g = 0.5, .b = 0, .a = 1 } };
 }
 
 export fn frame() void {
     const num_frames = saudio.expect();
     var i: i32 = 0;
-    while (i < num_frames): ({ i += 1; state.even_odd += 1; state.sample_pos += 1; }) {
+    while (i < num_frames) : ({
+        i += 1;
+        state.even_odd += 1;
+        state.sample_pos += 1;
+    }) {
         if (state.sample_pos == NumSamples) {
             state.sample_pos = 0;
             _ = saudio.push(&(state.samples[0]), NumSamples);
@@ -44,15 +48,7 @@ export fn cleanup() void {
 }
 
 pub fn main() void {
-    sapp.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .width = 640,
-        .height = 480,
-        .icon = .{
-            .sokol_default = true,
-        },
-        .window_title = "saudio.zig"
-    });
+    sapp.run(.{ .init_cb = init, .frame_cb = frame, .cleanup_cb = cleanup, .width = 640, .height = 480, .icon = .{
+        .sokol_default = true,
+    }, .window_title = "saudio.zig" });
 }

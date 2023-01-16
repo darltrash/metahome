@@ -6,6 +6,16 @@ local f = assert(io.open(filename, "r"), "FILE DOES NOT EXIST.")
 local map = json.decode(f:read("*all"))
 f:close()
 
+local function hex(hex)
+    hex = hex:gsub("#","")
+    return {
+        r = tonumber("0x"..hex:sub(1,2))/255, 
+        g = tonumber("0x"..hex:sub(3,4))/255, 
+        b = tonumber("0x"..hex:sub(5,6))/255,
+        a = 1
+    }
+end
+
 local out_map = {}
 for _, level in ipairs(map.levels) do
     local out_level = {
@@ -16,6 +26,24 @@ for _, level in ipairs(map.levels) do
         entities = {}
     }
     table.insert(out_map, out_level)
+
+    for _, v in ipairs(level.fieldInstances) do
+        local a = v.__value
+
+        if v.__type == "Color" then
+            a = hex(a)
+
+            if (a.r+a.b+a.g) == 0 then
+                goto continue
+            end
+        end
+
+        out_level[v.__identifier] = a
+        ::continue::
+    end
+
+    out_level.color_a = out_level.color_a or hex(level.bgColor)
+    out_level.color_b = out_level.color_b or out_level.color_a
 
     for _, layer in ipairs(level.layerInstances) do
         if layer.__type == "Tiles" then

@@ -3,8 +3,8 @@
 //
 //  Vertex buffer, shader, pipeline state object.
 //------------------------------------------------------------------------------
-const sg    = @import("sokol").gfx;
-const sapp  = @import("sokol").app;
+const sg = @import("sokol").gfx;
+const sapp = @import("sokol").app;
 const sgapp = @import("sokol").app_gfx_glue;
 
 const state = struct {
@@ -13,25 +13,21 @@ const state = struct {
 };
 
 export fn init() void {
-    sg.setup(.{
-        .context = sgapp.context()
-    });
+    sg.setup(.{ .context = sgapp.context() });
 
     // create vertex buffer with triangle vertices
     state.bind.vertex_buffers[0] = sg.makeBuffer(.{
         .data = sg.asRange(&[_]f32{
             // positions         colors
-             0.0,  0.5, 0.5,     1.0, 0.0, 0.0, 1.0,
-             0.5, -0.5, 0.5,     0.0, 1.0, 0.0, 1.0,
-            -0.5, -0.5, 0.5,     0.0, 0.0, 1.0, 1.0
-        })
+            0.0,  0.5,  0.5, 1.0, 0.0, 0.0, 1.0,
+            0.5,  -0.5, 0.5, 0.0, 1.0, 0.0, 1.0,
+            -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0,
+        }),
     });
 
     // create a shader and pipeline object
     const shd = sg.makeShader(shaderDesc());
-    var pip_desc: sg.PipelineDesc = .{
-        .shader = shd
-    };
+    var pip_desc: sg.PipelineDesc = .{ .shader = shd };
     pip_desc.layout.attrs[0].format = .FLOAT3;
     pip_desc.layout.attrs[1].format = .FLOAT4;
     state.pip = sg.makePipeline(pip_desc);
@@ -52,17 +48,9 @@ export fn cleanup() void {
 }
 
 pub fn main() void {
-    sapp.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .width = 640,
-        .height = 480,
-        .icon = .{
-            .sokol_default = true,
-        },
-        .window_title = "triangle.zig"
-    });
+    sapp.run(.{ .init_cb = init, .frame_cb = frame, .cleanup_cb = cleanup, .width = 640, .height = 480, .icon = .{
+        .sokol_default = true,
+    }, .window_title = "triangle.zig" });
 }
 
 // build a backend-specific ShaderDesc struct
@@ -91,12 +79,12 @@ fn shaderDesc() sg.ShaderDesc {
                 \\  outp.color = inp.color;
                 \\  return outp;
                 \\}
-                ;
+            ;
             desc.fs.source =
                 \\float4 main(float4 color: COLOR0): SV_Target0 {
                 \\  return color;
                 \\}
-                ;
+            ;
         },
         .GLCORE33 => {
             desc.attrs[0].name = "position";
@@ -110,7 +98,7 @@ fn shaderDesc() sg.ShaderDesc {
                 \\   gl_Position = position;
                 \\   color = color0;
                 \\ }
-                ;
+            ;
             desc.fs.source =
                 \\ #version 330
                 \\ in vec4 color;
@@ -118,7 +106,7 @@ fn shaderDesc() sg.ShaderDesc {
                 \\ void main() {
                 \\   frag_color = color;
                 \\ }
-                ;
+            ;
         },
         .METAL_MACOS => {
             desc.vs.source =
@@ -138,17 +126,16 @@ fn shaderDesc() sg.ShaderDesc {
                 \\   outp.color = inp.color;
                 \\   return outp;
                 \\ }
-                ;
+            ;
             desc.fs.source =
                 \\ #include <metal_stdlib>
                 \\ using namespace metal;
                 \\ fragment float4 _main(float4 color [[stage_in]]) {
                 \\   return color;
                 \\ };
-                ;
+            ;
         },
-        else => {}
+        else => {},
     }
     return desc;
 }
-

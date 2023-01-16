@@ -4,13 +4,13 @@
 //  Render to an offscreen rendertarget texture, and use this texture
 //  for rendering to the display.
 //------------------------------------------------------------------------------
-const sg     = @import("sokol").gfx;
-const sapp   = @import("sokol").app;
-const sgapp  = @import("sokol").app_gfx_glue;
+const sg = @import("sokol").gfx;
+const sapp = @import("sokol").app;
+const sgapp = @import("sokol").app_gfx_glue;
 const sshape = @import("sokol").shape;
-const vec3   = @import("math.zig").Vec3;
-const mat4   = @import("math.zig").Mat4;
-const shd    = @import("shaders/offscreen.glsl.zig");
+const vec3 = @import("math.zig").Vec3;
+const mat4 = @import("math.zig").Mat4;
+const shd = @import("shaders/offscreen.glsl.zig");
 
 const offscreen_sample_count = 4;
 
@@ -33,28 +33,16 @@ const state = struct {
 };
 
 export fn init() void {
-    sg.setup(.{
-        .context = sgapp.context()
-    });
+    sg.setup(.{ .context = sgapp.context() });
 
     // default pass action: clear to blue-ish
-    state.default.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r=0.25, .g=0.45, .b=0.65, .a=1.0 } };
+    state.default.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r = 0.25, .g = 0.45, .b = 0.65, .a = 1.0 } };
 
     // offscreen pass action: clear to black
-    state.offscreen.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r=0.25, .g=0.25, .b=0.25, .a=1.0 } };
+    state.offscreen.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r = 0.25, .g = 0.25, .b = 0.25, .a = 1.0 } };
 
     // a render pass with one color- and one depth-attachment image
-    var img_desc: sg.ImageDesc = .{
-        .render_target = true,
-        .width = 256,
-        .height = 256,
-        .pixel_format = .RGBA8,
-        .min_filter = .LINEAR,
-        .mag_filter = .LINEAR,
-        .wrap_u = .REPEAT,
-        .wrap_v = .REPEAT,
-        .sample_count = offscreen_sample_count
-    };
+    var img_desc: sg.ImageDesc = .{ .render_target = true, .width = 256, .height = 256, .pixel_format = .RGBA8, .min_filter = .LINEAR, .mag_filter = .LINEAR, .wrap_u = .REPEAT, .wrap_v = .REPEAT, .sample_count = offscreen_sample_count };
     const color_img = sg.makeImage(img_desc);
     img_desc.pixel_format = .DEPTH;
     const depth_img = sg.makeImage(img_desc);
@@ -70,14 +58,9 @@ export fn init() void {
     var indices: [24000]u16 = undefined;
     var buf: sshape.Buffer = .{
         .vertices = .{ .buffer = sshape.asRange(&vertices) },
-        .indices  = .{ .buffer = sshape.asRange(&indices) },
+        .indices = .{ .buffer = sshape.asRange(&indices) },
     };
-    buf = sshape.buildTorus(buf, .{
-        .radius = 0.5,
-        .ring_radius = 0.3,
-        .sides = 20,
-        .rings = 36
-    });
+    buf = sshape.buildTorus(buf, .{ .radius = 0.5, .ring_radius = 0.3, .sides = 20, .rings = 36 });
     state.donut = sshape.elementRange(buf);
     buf = sshape.buildSphere(buf, .{
         .radius = 0.5,
@@ -134,7 +117,6 @@ export fn init() void {
 }
 
 export fn frame() void {
-
     const dt = @floatCast(f32, sapp.frameDuration()) * 60.0;
     state.rx += 1 * dt;
     state.ry += 2 * dt;
@@ -153,7 +135,7 @@ export fn frame() void {
     sg.beginDefaultPass(state.default.pass_action, sapp.width(), sapp.height());
     sg.applyPipeline(state.default.pip);
     sg.applyBindings(state.default.bind);
-    sg.applyUniforms(.VS, 0, sg.asRange(&computeVsParams(-state.rx*0.25, state.ry*0.25, aspect, 2)));
+    sg.applyUniforms(.VS, 0, sg.asRange(&computeVsParams(-state.rx * 0.25, state.ry * 0.25, aspect, 2)));
     sg.draw(state.sphere.base_element, state.sphere.num_elements, 1);
     sg.endPass();
 
@@ -165,28 +147,17 @@ export fn cleanup() void {
 }
 
 pub fn main() void {
-    sapp.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .sample_count = 4,
-        .width = 800,
-        .height = 600,
-        .icon = .{
-            .sokol_default = true,
-        },
-        .window_title = "offscreen.zig"
-    });
+    sapp.run(.{ .init_cb = init, .frame_cb = frame, .cleanup_cb = cleanup, .sample_count = 4, .width = 800, .height = 600, .icon = .{
+        .sokol_default = true,
+    }, .window_title = "offscreen.zig" });
 }
 
 fn computeVsParams(rx: f32, ry: f32, aspect: f32, eye_dist: f32) shd.VsParams {
     const proj = mat4.persp(45, aspect, 0.01, 10);
-    const view = mat4.lookat(.{ .x=0, .y=0, .z=eye_dist}, vec3.zero(), vec3.up());
+    const view = mat4.lookat(.{ .x = 0, .y = 0, .z = eye_dist }, vec3.zero(), vec3.up());
     const view_proj = mat4.mul(proj, view);
-    const rxm = mat4.rotate(rx, .{ .x=1, .y=0, .z=0 });
-    const rym = mat4.rotate(ry, .{ .x=0, .y=1, .z=0 });
+    const rxm = mat4.rotate(rx, .{ .x = 1, .y = 0, .z = 0 });
+    const rym = mat4.rotate(ry, .{ .x = 0, .y = 1, .z = 0 });
     const model = mat4.mul(rxm, rym);
-    return shd.VsParams {
-        .mvp = mat4.mul(view_proj, model)
-    };
+    return shd.VsParams{ .mvp = mat4.mul(view_proj, model) };
 }

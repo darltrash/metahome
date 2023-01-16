@@ -3,11 +3,11 @@
 //
 //  sokol_gl.h / sokol.sgl sample program.
 //------------------------------------------------------------------------------
-const sg    = @import("sokol").gfx;
-const sapp  = @import("sokol").app;
-const sgl   = @import("sokol").gl;
+const sg = @import("sokol").gfx;
+const sapp = @import("sokol").app;
+const sgl = @import("sokol").gl;
 const sgapp = @import("sokol").app_gfx_glue;
-const math  = @import("std").math;
+const math = @import("std").math;
 
 const state = struct {
     var pass_action: sg.PassAction = .{};
@@ -27,9 +27,7 @@ const state = struct {
 
 export fn init() void {
     // setup sokol-gfx
-    sg.setup(.{
-        .context = sgapp.context()
-    });
+    sg.setup(.{ .context = sgapp.context() });
     // setup sokol-gl
     sgl.setup(.{});
 
@@ -39,9 +37,9 @@ export fn init() void {
     const pixels = init: {
         var res: [img_width][img_height]u32 = undefined;
         var y: usize = 0;
-        while (y < img_height): (y += 1) {
+        while (y < img_height) : (y += 1) {
             var x: usize = 0;
-            while (x < img_width): (x += 1) {
+            while (x < img_width) : (x += 1) {
                 res[y][x] = if (0 == (y ^ x) & 1) 0xFF_00_00_00 else 0xFF_FF_FF_FF;
             }
         }
@@ -68,7 +66,7 @@ export fn init() void {
     });
 
     // pass-action to clear to black
-    state.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r=0, .g=0, .b=0, .a=1 }};
+    state.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r = 0, .g = 0, .b = 0, .a = 1 } };
 }
 
 export fn frame() void {
@@ -110,9 +108,9 @@ export fn cleanup() void {
 fn drawTriangle() void {
     sgl.defaults();
     sgl.beginTriangles();
-    sgl.v2fC3b( 0.0,  0.5, 255, 0, 0);
+    sgl.v2fC3b(0.0, 0.5, 255, 0, 0);
     sgl.v2fC3b(-0.5, -0.5, 0, 0, 255);
-    sgl.v2fC3b( 0.5, -0.5, 0, 255, 0);
+    sgl.v2fC3b(0.5, -0.5, 0, 255, 0);
     sgl.end();
 }
 
@@ -123,10 +121,10 @@ fn drawQuad(dt: f32) void {
     sgl.rotate(sgl.asRadians(state.quad.rot), 0.0, 0.0, 1.0);
     sgl.scale(scale, scale, 1.0);
     sgl.beginQuads();
-    sgl.v2fC3b( -0.5, -0.5,  255, 255, 0);
-    sgl.v2fC3b(  0.5, -0.5,  0, 255, 0);
-    sgl.v2fC3b(  0.5,  0.5,  0, 0, 255);
-    sgl.v2fC3b( -0.5,  0.5,  255, 0, 0);
+    sgl.v2fC3b(-0.5, -0.5, 255, 255, 0);
+    sgl.v2fC3b(0.5, -0.5, 0, 255, 0);
+    sgl.v2fC3b(0.5, 0.5, 0, 0, 255);
+    sgl.v2fC3b(-0.5, 0.5, 255, 0, 0);
     sgl.end();
 }
 
@@ -134,35 +132,35 @@ fn drawQuad(dt: f32) void {
 fn drawCube() void {
     sgl.beginQuads();
     sgl.c3f(1.0, 0.0, 0.0);
-        sgl.v3fT2f(-1.0,  1.0, -1.0, -1.0,  1.0);
-        sgl.v3fT2f( 1.0,  1.0, -1.0,  1.0,  1.0);
-        sgl.v3fT2f( 1.0, -1.0, -1.0,  1.0, -1.0);
-        sgl.v3fT2f(-1.0, -1.0, -1.0, -1.0, -1.0);
+    sgl.v3fT2f(-1.0, 1.0, -1.0, -1.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, -1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, -1.0, 1.0, -1.0);
+    sgl.v3fT2f(-1.0, -1.0, -1.0, -1.0, -1.0);
     sgl.c3f(0.0, 1.0, 0.0);
-        sgl.v3fT2f(-1.0, -1.0,  1.0, -1.0,  1.0);
-        sgl.v3fT2f( 1.0, -1.0,  1.0,  1.0,  1.0);
-        sgl.v3fT2f( 1.0,  1.0,  1.0,  1.0, -1.0);
-        sgl.v3fT2f(-1.0,  1.0,  1.0, -1.0, -1.0);
+    sgl.v3fT2f(-1.0, -1.0, 1.0, -1.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, 1.0, 1.0, -1.0);
+    sgl.v3fT2f(-1.0, 1.0, 1.0, -1.0, -1.0);
     sgl.c3f(0.0, 0.0, 1.0);
-        sgl.v3fT2f(-1.0, -1.0,  1.0, -1.0,  1.0);
-        sgl.v3fT2f(-1.0,  1.0,  1.0,  1.0,  1.0);
-        sgl.v3fT2f(-1.0,  1.0, -1.0,  1.0, -1.0);
-        sgl.v3fT2f(-1.0, -1.0, -1.0, -1.0, -1.0);
+    sgl.v3fT2f(-1.0, -1.0, 1.0, -1.0, 1.0);
+    sgl.v3fT2f(-1.0, 1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(-1.0, 1.0, -1.0, 1.0, -1.0);
+    sgl.v3fT2f(-1.0, -1.0, -1.0, -1.0, -1.0);
     sgl.c3f(1.0, 0.5, 0.0);
-        sgl.v3fT2f(1.0, -1.0,  1.0, -1.0,   1.0);
-        sgl.v3fT2f(1.0, -1.0, -1.0,  1.0,   1.0);
-        sgl.v3fT2f(1.0,  1.0, -1.0,  1.0,  -1.0);
-        sgl.v3fT2f(1.0,  1.0,  1.0, -1.0,  -1.0);
+    sgl.v3fT2f(1.0, -1.0, 1.0, -1.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, -1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, -1.0, 1.0, -1.0);
+    sgl.v3fT2f(1.0, 1.0, 1.0, -1.0, -1.0);
     sgl.c3f(0.0, 0.5, 1.0);
-        sgl.v3fT2f( 1.0, -1.0, -1.0, -1.0,  1.0);
-        sgl.v3fT2f( 1.0, -1.0,  1.0,  1.0,  1.0);
-        sgl.v3fT2f(-1.0, -1.0,  1.0,  1.0, -1.0);
-        sgl.v3fT2f(-1.0, -1.0, -1.0, -1.0, -1.0);
+    sgl.v3fT2f(1.0, -1.0, -1.0, -1.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(-1.0, -1.0, 1.0, 1.0, -1.0);
+    sgl.v3fT2f(-1.0, -1.0, -1.0, -1.0, -1.0);
     sgl.c3f(1.0, 0.0, 0.5);
-        sgl.v3fT2f(-1.0,  1.0, -1.0, -1.0,  1.0);
-        sgl.v3fT2f(-1.0,  1.0,  1.0,  1.0,  1.0);
-        sgl.v3fT2f( 1.0,  1.0,  1.0,  1.0, -1.0);
-        sgl.v3fT2f( 1.0,  1.0, -1.0, -1.0, -1.0);
+    sgl.v3fT2f(-1.0, 1.0, -1.0, -1.0, 1.0);
+    sgl.v3fT2f(-1.0, 1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, 1.0, 1.0, -1.0);
+    sgl.v3fT2f(1.0, 1.0, -1.0, -1.0, -1.0);
     sgl.end();
 }
 
@@ -182,18 +180,18 @@ fn drawCubes(dt: f32) void {
     sgl.rotate(sgl.asRadians(state.cube.rot_y), 0.0, 1.0, 0.0);
     drawCube();
     sgl.pushMatrix();
-        sgl.translate(0.0, 0.0, 3.0);
-        sgl.scale(0.5, 0.5, 0.5);
-        sgl.rotate(-2.0 * sgl.asRadians(state.cube.rot_x), 1.0, 0.0, 0.0);
-        sgl.rotate(-2.0 * sgl.asRadians(state.cube.rot_y), 0.0, 1.0, 0.0);
-        drawCube();
-        sgl.pushMatrix();
-            sgl.translate(0.0, 0.0, 3.0);
-            sgl.scale(0.5, 0.5, 0.5);
-            sgl.rotate(-3.0 * sgl.asRadians(state.cube.rot_x), 1.0, 0.0, 0.0);
-            sgl.rotate(3.0 * sgl.asRadians(state.cube.rot_y), 0.0, 0.0, 1.0);
-            drawCube();
-        sgl.popMatrix();
+    sgl.translate(0.0, 0.0, 3.0);
+    sgl.scale(0.5, 0.5, 0.5);
+    sgl.rotate(-2.0 * sgl.asRadians(state.cube.rot_x), 1.0, 0.0, 0.0);
+    sgl.rotate(-2.0 * sgl.asRadians(state.cube.rot_y), 0.0, 1.0, 0.0);
+    drawCube();
+    sgl.pushMatrix();
+    sgl.translate(0.0, 0.0, 3.0);
+    sgl.scale(0.5, 0.5, 0.5);
+    sgl.rotate(-3.0 * sgl.asRadians(state.cube.rot_x), 1.0, 0.0, 0.0);
+    sgl.rotate(3.0 * sgl.asRadians(state.cube.rot_y), 0.0, 0.0, 1.0);
+    drawCube();
+    sgl.popMatrix();
     sgl.popMatrix();
 }
 
@@ -227,16 +225,7 @@ fn drawTexCube(dt: f32) void {
 }
 
 pub fn main() void {
-    sapp.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .width = 512,
-        .height = 512,
-        .sample_count = 4,
-        .icon = .{
-            .sokol_default = true,
-        },
-        .window_title = "sgl.zig"
-    });
+    sapp.run(.{ .init_cb = init, .frame_cb = frame, .cleanup_cb = cleanup, .width = 512, .height = 512, .sample_count = 4, .icon = .{
+        .sokol_default = true,
+    }, .window_title = "sgl.zig" });
 }

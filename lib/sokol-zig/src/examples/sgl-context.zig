@@ -5,11 +5,11 @@
 //  using contexts.
 //------------------------------------------------------------------------------
 const sokol = @import("sokol");
-const sg    = sokol.gfx;
-const sapp  = sokol.app;
+const sg = sokol.gfx;
+const sapp = sokol.app;
 const sgapp = sokol.app_gfx_glue;
-const sgl   = sokol.gl;
-const math  = @import("std").math;
+const sgl = sokol.gl;
+const math = @import("std").math;
 
 const state = struct {
     const offscreen = struct {
@@ -44,9 +44,7 @@ export fn init() void {
     });
 
     // initialize a pass action struct for the default pass to clear to a light-blue color
-    state.display.pass_action.colors[0] = .{
-        .action = .CLEAR, .value = .{ .r=0.5, .g=0.7, .b=1, .a=1 }
-    };
+    state.display.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r = 0.5, .g = 0.7, .b = 1, .a = 1 } };
 
     // create a sokol-gl pipeline object for 3D rendering into the default pass
     state.display.sgl_pip = sgl.contextMakePipeline(sgl.defaultContext(), .{
@@ -84,7 +82,7 @@ export fn init() void {
     pass_desc.color_attachments[0].image = state.offscreen.img;
     state.offscreen.pass = sg.makePass(pass_desc);
 
-    state.offscreen.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r=0, .g=0, .b=0, .a=1 } };
+    state.offscreen.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r = 0, .g = 0, .b = 0, .a = 1 } };
 }
 
 export fn frame() void {
@@ -104,8 +102,12 @@ export fn frame() void {
     sgl.texture(state.offscreen.img);
     sgl.loadPipeline(state.display.sgl_pip);
     sgl.matrixModeProjection();
-    sgl.perspective(sgl.asRadians(45.0), sapp.widthf()/sapp.heightf(), 0.1, 100.0);
-    const eye = .{ math.sin(a) * 6.0, math.sin(a) * 3.0, math.cos(a) * 6.0, };
+    sgl.perspective(sgl.asRadians(45.0), sapp.widthf() / sapp.heightf(), 0.1, 100.0);
+    const eye = .{
+        math.sin(a) * 6.0,
+        math.sin(a) * 3.0,
+        math.cos(a) * 6.0,
+    };
     sgl.matrixModeModelview();
     sgl.lookat(eye[0], eye[1], eye[2], 0, 0, 0, 0, 1, 0);
     draw_cube();
@@ -126,55 +128,45 @@ export fn cleanup() void {
 }
 
 pub fn main() void {
-    sapp.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .width = 800,
-        .height = 600,
-        .sample_count = 4,
-        .icon = .{
-            .sokol_default = true,
-        },
-        .window_title = "sgl-context.zig"
-    });
+    sapp.run(.{ .init_cb = init, .frame_cb = frame, .cleanup_cb = cleanup, .width = 800, .height = 600, .sample_count = 4, .icon = .{
+        .sokol_default = true,
+    }, .window_title = "sgl-context.zig" });
 }
 
 fn draw_quad() void {
     sgl.beginQuads();
-    sgl.v2fC3b( 0.0, -1.0, 255, 0, 0);
-    sgl.v2fC3b( 1.0,  0.0, 0, 0, 255);
-    sgl.v2fC3b( 0.0,  1.0, 0, 255, 255);
-    sgl.v2fC3b(-1.0,  0.0, 0, 255, 0);
+    sgl.v2fC3b(0.0, -1.0, 255, 0, 0);
+    sgl.v2fC3b(1.0, 0.0, 0, 0, 255);
+    sgl.v2fC3b(0.0, 1.0, 0, 255, 255);
+    sgl.v2fC3b(-1.0, 0.0, 0, 255, 0);
     sgl.end();
 }
 
 fn draw_cube() void {
     sgl.beginQuads();
-    sgl.v3fT2f(-1.0,  1.0, -1.0, 0.0, 1.0);
-    sgl.v3fT2f( 1.0,  1.0, -1.0, 1.0, 1.0);
-    sgl.v3fT2f( 1.0, -1.0, -1.0, 1.0, 0.0);
+    sgl.v3fT2f(-1.0, 1.0, -1.0, 0.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, -1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, -1.0, 1.0, 0.0);
     sgl.v3fT2f(-1.0, -1.0, -1.0, 0.0, 0.0);
-    sgl.v3fT2f(-1.0, -1.0,  1.0, 0.0, 1.0);
-    sgl.v3fT2f( 1.0, -1.0,  1.0, 1.0, 1.0);
-    sgl.v3fT2f( 1.0,  1.0,  1.0, 1.0, 0.0);
-    sgl.v3fT2f(-1.0,  1.0,  1.0, 0.0, 0.0);
-    sgl.v3fT2f(-1.0, -1.0,  1.0, 0.0, 1.0);
-    sgl.v3fT2f(-1.0,  1.0,  1.0, 1.0, 1.0);
-    sgl.v3fT2f(-1.0,  1.0, -1.0, 1.0, 0.0);
+    sgl.v3fT2f(-1.0, -1.0, 1.0, 0.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, 1.0, 1.0, 0.0);
+    sgl.v3fT2f(-1.0, 1.0, 1.0, 0.0, 0.0);
+    sgl.v3fT2f(-1.0, -1.0, 1.0, 0.0, 1.0);
+    sgl.v3fT2f(-1.0, 1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(-1.0, 1.0, -1.0, 1.0, 0.0);
     sgl.v3fT2f(-1.0, -1.0, -1.0, 0.0, 0.0);
-    sgl.v3fT2f( 1.0, -1.0,  1.0, 0.0, 1.0);
-    sgl.v3fT2f( 1.0, -1.0, -1.0, 1.0, 1.0);
-    sgl.v3fT2f( 1.0,  1.0, -1.0, 1.0, 0.0);
-    sgl.v3fT2f( 1.0,  1.0,  1.0, 0.0, 0.0);
-    sgl.v3fT2f( 1.0, -1.0, -1.0, 0.0, 1.0);
-    sgl.v3fT2f( 1.0, -1.0,  1.0, 1.0, 1.0);
-    sgl.v3fT2f(-1.0, -1.0,  1.0, 1.0, 0.0);
+    sgl.v3fT2f(1.0, -1.0, 1.0, 0.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, -1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, -1.0, 1.0, 0.0);
+    sgl.v3fT2f(1.0, 1.0, 1.0, 0.0, 0.0);
+    sgl.v3fT2f(1.0, -1.0, -1.0, 0.0, 1.0);
+    sgl.v3fT2f(1.0, -1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(-1.0, -1.0, 1.0, 1.0, 0.0);
     sgl.v3fT2f(-1.0, -1.0, -1.0, 0.0, 0.0);
-    sgl.v3fT2f(-1.0,  1.0, -1.0, 0.0, 1.0);
-    sgl.v3fT2f(-1.0,  1.0,  1.0, 1.0, 1.0);
-    sgl.v3fT2f( 1.0,  1.0,  1.0, 1.0, 0.0);
-    sgl.v3fT2f( 1.0,  1.0, -1.0, 0.0, 0.0);
+    sgl.v3fT2f(-1.0, 1.0, -1.0, 0.0, 1.0);
+    sgl.v3fT2f(-1.0, 1.0, 1.0, 1.0, 1.0);
+    sgl.v3fT2f(1.0, 1.0, 1.0, 1.0, 0.0);
+    sgl.v3fT2f(1.0, 1.0, -1.0, 0.0, 0.0);
     sgl.end();
 }
-

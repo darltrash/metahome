@@ -22,7 +22,7 @@ pub const Source = struct {
         if (status == 0)
             return error.couldNotDecode;
 
-        return Source {
+        return Source{
             .length = c.drmp3_get_pcm_frame_count(@ptrCast(*c.drmp3, &mp3)),
             .mp3 = mp3,
         };
@@ -33,15 +33,15 @@ pub var sources: std.ArrayList(Source) = undefined;
 
 fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
     var i: usize = 0;
-    while (i < (frames*channels)) {
+    while (i < (frames * channels)) {
         buffer[i] = 0;
         i += 1;
     }
 
-    var a = main.allocator.alloc(f32, @intCast(usize, frames*channels)) catch unreachable;
+    var a = main.allocator.alloc(f32, @intCast(usize, frames * channels)) catch unreachable;
     defer main.allocator.free(a);
 
-    for (sources.items) | *source, key | {
+    for (sources.items) |*source, key| {
         var m = @ptrCast(*c.drmp3, &source.mp3);
         _ = c.drmp3_read_pcm_frames_f32(m, @intCast(u64, frames), a.ptr);
 
@@ -57,7 +57,7 @@ fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
         if (source.position != null)
             vol *= @floatCast(f32, source.position.?.distance(main.real_camera));
 
-        for (a) | val, k | {
+        for (a) |val, k| {
             buffer[k] += val * vol * volume;
         }
     }
@@ -67,17 +67,13 @@ fn thread(buffer: [*c]f32, frames: i32, channels: i32) callconv(.C) void {
 
 pub fn addSource(source: Source) !*Source {
     try sources.append(source);
-    return &sources.items[sources.items.len-1];
+    return &sources.items[sources.items.len - 1];
 }
 
 pub fn init(allocator: std.mem.Allocator) !void {
     sources = std.ArrayList(Source).init(allocator);
 
-    audio.setup(.{ 
-        .stream_cb = thread,  
-        .num_channels = 2,
-        .sample_rate = 44100
-    });
+    audio.setup(.{ .stream_cb = thread, .num_channels = 2, .sample_rate = 44100 });
 
     var a = try addSource(try Source.create(assets.@"mus_self_aware.mp3"));
     a.volume = 0.5;

@@ -1,47 +1,45 @@
-const std   = @import("std");
+const std = @import("std");
 pub const DEBUGMODE = @import("builtin").mode == .Debug;
 
-const sg    = @import("sokol").gfx;
-const sapp  = @import("sokol").app;
+const sg = @import("sokol").gfx;
+const sapp = @import("sokol").app;
 const sgapp = @import("sokol").app_gfx_glue;
-const st    = @import("sokol").debugtext;
+const st = @import("sokol").debugtext;
 
-const shd   = @import("shaders/quad.glsl.zig");
+const shd = @import("shaders/quad.glsl.zig");
 const extra = @import("extra.zig");
 const input = @import("input.zig");
 const assets = @import("assets.zig");
-const back  = @import("background.zig");
+const back = @import("background.zig");
 
-const font  = @import("font.zig");
+const font = @import("font.zig");
 const audio = @import("audio.zig");
 
 pub const resolution = 250;
 
 pub const Sprite = struct { 
-    origin: extra.Rectangle = .{},
-    position: extra.Vector = .{},
-    color: extra.Color = .{},
-    scale: extra.Vector = .{.x=1, .y=1},
-    from_center: bool = false,
-    rotation: f64 = 0
+    origin: extra.Rectangle = .{}, 
+    position: extra.Vector = .{}, 
+    color: extra.Color = .{}, 
+    scale: extra.Vector = .{ .x = 1, .y = 1 }, 
+    from_center: bool = false, 
+    rotation: f64 = 0 
 };
 
-pub const State = struct {
-    init: *const (fn () anyerror!void),
-    loop: *const (fn (f64) anyerror!void)
+pub const State = struct { 
+    init: *const (fn () anyerror!void), 
+    loop: *const (fn (f64) anyerror!void) 
 };
 
 var current_state: State = undefined;
 
-pub const States = enum {
-    main
-};
+pub const States = enum { main };
 
 pub fn setState(state: States) !void {
     switch (state) {
-        .main => current_state = @import("world.zig").state
+        .main => current_state = @import("world.zig").state,
     }
-    
+
     try current_state.init();
 }
 
@@ -74,52 +72,57 @@ pub var filter: f32 = 0.3;
 fn noise(mag: f64, offset: f64) f64 {
     if (mag == 0)
         return 0;
-    return @floatCast(f32, mag * (0.5 - assets.noise(.{.x=offset+timer, .y=(offset*0.5)+timer})));
+
+    return @floatCast(f32, 
+        mag * (0.5 - assets.noise(.{ 
+        .x = offset + timer, .y = (offset * 0.5) + timer 
+        }))
+    );
 }
 
 fn posNoise(x: f64, y: f64, wobble: f64) [2]f32 {
-    return [2]f32 {
-        @floatCast(f32, x + noise(wobble/(width/real_camera.z),  (x*32) + (timer*3))),
-        @floatCast(f32, y + noise(wobble/(height/real_camera.z), (y*32) + (timer*3)))
+    return [2]f32{ 
+        @floatCast(f32, x + noise(wobble / (width / real_camera.z), (x * 32) + (timer * 3))), 
+        @floatCast(f32, y + noise(wobble / (height / real_camera.z), (y * 32) + (timer * 3))) 
     };
 }
 
 pub fn render(spr: Sprite) void {
-    // Horrid, I know. 
+    // Horrid, I know.
     current_quad %= quad_amount;
 
     var sprite = spr;
 
-    var n = extra.Rectangle {
+    var n = extra.Rectangle{ 
         .x = sprite.position.x, 
-        .y = sprite.position.y+sprite.position.z, 
-        .w = sprite.origin.w*sprite.scale.x, 
-        .h = sprite.origin.h*sprite.scale.y
+        .y = sprite.position.y + sprite.position.z, 
+        .w = sprite.origin.w * sprite.scale.x, 
+        .h = sprite.origin.h * sprite.scale.y 
     };
 
     if (sprite.from_center) {
-        n.x += sprite.origin.w*(1-sprite.scale.x)*0.5;
-        n.y += sprite.origin.h*(1-sprite.scale.y)*0.5;
+        n.x += sprite.origin.w * (1 - sprite.scale.x) * 0.5;
+        n.y += sprite.origin.h * (1 - sprite.scale.y) * 0.5;
     }
 
-    var w: f64 = 0;//sprite.wobble;
+    var w: f64 = 0; //sprite.wobble;
     n = n.visible(width, height, real_camera) orelse return;
-    
+
     // [Pos, Size] to [Corner A, Corner B]
     n.w += n.x;
     n.h += n.y;
 
-    var u: extra.Rectangle = .{
-        .x = sprite.origin.x / @intToFloat(f64, atlas.w),
-        .y = sprite.origin.y / @intToFloat(f64, atlas.h),
-        .w = sprite.origin.w / @intToFloat(f64, atlas.w),
-        .h = sprite.origin.h / @intToFloat(f64, atlas.h)
+    var u: extra.Rectangle = .{ 
+        .x = sprite.origin.x / @intToFloat(f64, atlas.w), 
+        .y = sprite.origin.y / @intToFloat(f64, atlas.h), 
+        .w = sprite.origin.w / @intToFloat(f64, atlas.w), 
+        .h = sprite.origin.h / @intToFloat(f64, atlas.h) 
     };
-    
+
     // [Pos, Size] to [Corner A, Corner B]
     u.w += u.x;
     u.h += u.y;
-    
+
     // TODO: Fix wobbly sprite discrimination
     // Idea: Probably grow the square by wobble?
     var p1 = posNoise(n.x, -n.h, w);
@@ -128,17 +131,17 @@ pub fn render(spr: Sprite) void {
     var p4 = posNoise(n.x, -n.y, w);
 
     const c = sprite.color;
- 
-    // TODO: Fix the wayland backend making the 
+
+    // TODO: Fix the wayland backend making the
     // sprites look weird (Probably just floor() it)
 
     // Now that I think about it, why does that
     // even happen??? subpixel madness????
-    const tmp_vertices = [_]f32 { // i hate this coordinate system :P
-        p1[0], p1[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.x), @floatCast(f32, u.h),
-        p2[0], p2[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.w), @floatCast(f32, u.h),
-        p3[0], p3[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.w), @floatCast(f32, u.y),
-        p4[0], p4[1], 1.0,   c.r, c.g, c.b, c.a,   @floatCast(f32, u.x), @floatCast(f32, u.y)
+    const tmp_vertices = [_]f32{ // i hate this coordinate system :P
+        p1[0], p1[1], 1.0, c.r, c.g, c.b, c.a, @floatCast(f32, u.x), @floatCast(f32, u.h),
+        p2[0], p2[1], 1.0, c.r, c.g, c.b, c.a, @floatCast(f32, u.w), @floatCast(f32, u.h),
+        p3[0], p3[1], 1.0, c.r, c.g, c.b, c.a, @floatCast(f32, u.w), @floatCast(f32, u.y),
+        p4[0], p4[1], 1.0, c.r, c.g, c.b, c.a, @floatCast(f32, u.x), @floatCast(f32, u.y),
     };
 
     std.mem.copy(f32, vertices[(current_quad * 36)..], &tmp_vertices);
@@ -148,9 +151,17 @@ pub fn render(spr: Sprite) void {
 
 pub fn background(color: ?extra.Color) extra.Color {
     if (color != null)
-        pass_action.colors[0] = .{ .action=.CLEAR, .value=.{ .r=color.?.r, .g=color.?.g, .b=color.?.b, .a=color.?.a } };
+        pass_action.colors[0] = .{ 
+            .action = .CLEAR, 
+            .value = .{ 
+                .r = color.?.r, 
+                .g = color.?.g, 
+                .b = color.?.b, 
+                .a = color.?.a 
+            } 
+        };
 
-    return color orelse extra.Color {
+    return color orelse extra.Color{
         .r = pass_action.colors[0].value.r,
         .g = pass_action.colors[0].value.g,
         .b = pass_action.colors[0].value.b,
@@ -159,22 +170,20 @@ pub fn background(color: ?extra.Color) extra.Color {
 }
 
 pub fn rect(r: extra.Rectangle, color: extra.Color) void {
-    render(
-        .{
-            .origin = .{.x=0, .y=0, .w=1, .h=1}, 
-            .position = .{.x=r.x, .y=r.y}, 
-            .color = color, 
-            .scale = .{.x=r.w, .y=r.h},
-        }
-    );
+    render(.{
+        .origin = .{ .x = 0, .y = 0, .w = 1, .h = 1 },
+        .position = .{ .x = r.x, .y = r.y },
+        .color = color,
+        .scale = .{ .x = r.w, .y = r.h },
+    });
 }
 
 pub fn outlineRect(r: extra.Rectangle, color: extra.Color) void {
-    rect(.{.x=r.x, .y=r.y-1,   .w=r.w, .h=1}, color);
-    rect(.{.x=r.x, .y=r.y+r.h, .w=r.w, .h=1}, color);
+    rect(.{ .x = r.x, .y = r.y - 1, .w = r.w, .h = 1 }, color);
+    rect(.{ .x = r.x, .y = r.y + r.h, .w = r.w, .h = 1 }, color);
 
-    rect(.{.x=r.x-1,   .y=r.y, .w=1, .h=r.h}, color);
-    rect(.{.x=r.x+r.w, .y=r.y, .w=1, .h=r.h}, color);
+    rect(.{ .x = r.x - 1, .y = r.y, .w = 1, .h = r.h }, color);
+    rect(.{ .x = r.x + r.w, .y = r.y, .w = 1, .h = r.h }, color);
 }
 
 pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: extra.Color, highlight: ?extra.Color) !void {
@@ -216,7 +225,7 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
 
                 var word_end = @intToFloat(f64, std.mem.indexOf(u8, t[i..], " ") orelse 0);
 
-                if (cp.x+(word_end*8) > (limit + p.x)) {
+                if (cp.x + (word_end * 8) > (limit + p.x)) {
                     cp.x = p.x;
                     cp.y += 9;
                 }
@@ -224,21 +233,18 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
                 var tp = cp;
                 tp.y -= e.origin.y;
                 tp.x -= e.origin.x;
-                tp.y -= @sin((timer*5) + tp.x) 
-                    * @as(f64, if (wobbly) 1 else 0);
-                
+                tp.y -= @sin((timer * 5) + tp.x) * @as(f64, if (wobbly) 1 else 0);
+
                 if (code != ' ')
-                    render(
-                        .{
-                            .origin = e.sprite, 
-                            .position = tp,
-                            .color = if (ih) h else color,
-                        }
-                    );
+                    render(.{
+                        .origin = e.sprite,
+                        .position = tp,
+                        .color = if (ih) h else color,
+                    });
                 cp.x += e.sprite.w - e.origin.x;
 
                 i += 1;
-            }
+            },
         }
 
         if (end != null and i == end.?)
@@ -247,9 +253,7 @@ pub fn print(p: extra.Vector, t: []const u8, end: ?usize, limit: f64, color: ext
 }
 
 export fn init() void {
-    sg.setup(.{
-        .context = sgapp.context()
-    });
+    sg.setup(.{ .context = sgapp.context() });
 
     input.setup(allocator) catch unreachable;
 
@@ -267,33 +271,27 @@ export fn init() void {
 
     main_font = font.generate(allocator) catch unreachable;
 
-    bind.vertex_buffers[0] = sg.makeBuffer(.{
-        .usage = .STREAM,
-        .size = quad_amount * 36 * 4
-    });
+    bind.vertex_buffers[0] = sg.makeBuffer(.{ .usage = .STREAM, .size = quad_amount * 36 * 4 });
 
-    var indices: [quad_amount*6]u16 = undefined;
+    var indices: [quad_amount * 6]u16 = undefined;
     comptime {
-        @setEvalBranchQuota(quad_amount+1);
+        @setEvalBranchQuota(quad_amount + 1);
         var i: usize = 0;
         while (i < quad_amount) {
             var e = @intCast(u32, i * 4);
 
-            indices[(i*6)+0] = e;
-            indices[(i*6)+1] = e+1;
-            indices[(i*6)+2] = e+2;
-            indices[(i*6)+3] = e;
-            indices[(i*6)+4] = e+2;
-            indices[(i*6)+5] = e+3;
+            indices[(i * 6) + 0] = e;
+            indices[(i * 6) + 1] = e + 1;
+            indices[(i * 6) + 2] = e + 2;
+            indices[(i * 6) + 3] = e;
+            indices[(i * 6) + 4] = e + 2;
+            indices[(i * 6) + 5] = e + 3;
 
             i += 1;
         }
     }
 
-    bind.index_buffer = sg.makeBuffer(.{
-        .type = .INDEXBUFFER,
-        .data = sg.asRange(&indices)
-    });
+    bind.index_buffer = sg.makeBuffer(.{ .type = .INDEXBUFFER, .data = sg.asRange(&indices) });
 
     var pip_desc: sg.PipelineDesc = .{
         .index_type = .UINT16,
@@ -311,14 +309,14 @@ export fn init() void {
         .src_factor_alpha = .SRC_ALPHA,
         .dst_factor_alpha = .ONE_MINUS_SRC_ALPHA,
     };
-    
+
     pip_desc.layout.attrs[shd.ATTR_vs_vx_position].format = .FLOAT3;
     pip_desc.layout.attrs[shd.ATTR_vs_vx_color].format = .FLOAT4;
-    pip_desc.layout.attrs[shd.ATTR_vs_vx_uv].format = .FLOAT2; 
+    pip_desc.layout.attrs[shd.ATTR_vs_vx_uv].format = .FLOAT2;
 
     pip = sg.makePipeline(pip_desc);
 
-    pass_action.colors[0] = .{ .action=.DONTCARE, .value=.{ .r=0, .g=0, .b=0, .a=0 } };
+    pass_action.colors[0] = .{ .action = .DONTCARE, .value = .{ .r = 0, .g = 0, .b = 0, .a = 0 } };
     text_pass_action.colors[0].action = .DONTCARE;
 
     setState(.main) catch unreachable;
@@ -344,10 +342,7 @@ export fn frame() void {
     if (s > 0)
         current_state.loop(delta) catch unreachable
     else {
-        print(
-            .{.x = -(width/2)+32}, "Not enough space :(", 
-            null, width, .{.a=0.8}, null
-        ) catch unreachable;
+        print(.{ .x = -(width / 2) + 32 }, "Not enough space :(", null, width, .{ .a = 0.8 }, null) catch unreachable;
     }
 
     //if (comptime DEBUGMODE)
@@ -357,12 +352,21 @@ export fn frame() void {
         .color_a = back.uniforms.color_a,
         .color_b = back.uniforms.color_b,
     };
+
+    // Get the color with the highest luma to be the
+    // "white" remap, and the other to be the darkest one.
+    if (uniforms.color_a.luma() < uniforms.color_b.luma())
+        std.mem.swap(extra.Color, &uniforms.color_a, &uniforms.color_b);
+
     uniforms.color_a.a = filter;
-    
+
     {
         var c = real_camera;
-        real_camera = .{.z=real_camera.z, .x=-(width/real_camera.z/2), .y=-(height/real_camera.z/2)};
-        print(.{.x=3, .y=3}, "Exiting...", null, 10000, .{}, null) catch unreachable;
+        real_camera = .{ 
+            .z = real_camera.z, .x = -(width / real_camera.z / 2), 
+            .y = -(height / real_camera.z / 2) 
+        };
+        print(.{ .x = 3, .y = 3 }, "Exiting...", null, 10000, .{}, null) catch unreachable;
         real_camera = c;
     }
 
@@ -378,15 +382,15 @@ export fn frame() void {
     sg.endPass();
 
     if (comptime DEBUGMODE) {
-        st.canvas(sapp.widthf()/2, sapp.heightf()/2);
+        st.canvas(sapp.widthf() / 2, sapp.heightf() / 2);
         st.color1i(0xffffffff);
         st.origin(2, 2);
         st.font(0);
 
-        var size: f32 = (@intToFloat(f32, @sizeOf(f32)*current_quad)*36)/1024;
-        st.print("Quads: {}/{} ({d:.01}KB)", .{current_quad, quad_amount, size});
+        var size: f32 = (@intToFloat(f32, @sizeOf(f32) * current_quad) * 36) / 1024;
+        st.print("Quads: {}/{} ({d:.01}KB)", .{ current_quad, quad_amount, size });
         st.crlf();
-        st.print("Camera: [{d:.1}, {d:.1}, {d:.1}]", .{real_camera.x, real_camera.y, real_camera.z});
+        st.print("Camera: [{d:.1}, {d:.1}, {d:.1}]", .{ real_camera.x, real_camera.y, real_camera.z });
         st.crlf();
         st.print("Sources: {}", .{audio.sources.items.len});
 
@@ -410,7 +414,7 @@ export fn event(ev: [*c]const sapp.Event) void {
             if (ev[0].key_code == sapp.Keycode.F11 and !ev[0].key_repeat)
                 sapp.toggleFullscreen();
         },
-        else => {}
+        else => {},
     }
 }
 
@@ -418,18 +422,18 @@ pub fn main() !void {
     allocator = std.heap.c_allocator;
 
     var icon: sapp.IconDesc = .{};
-    icon.images[0] = try assets.generateIcon(assets.@"icons/16.png",  allocator);
+    icon.images[0] = try assets.generateIcon(assets.@"icons/16.png", allocator);
     icon.images[1] = try assets.generateIcon(assets.@"icons/256.png", allocator);
 
-    sapp.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .event_cb = event,
-        .width = 800,
-        .height = 500,
-        .icon = icon,
-        .sample_count = 0,
-        .window_title = "metahome"
+    sapp.run(.{ 
+        .init_cb = init, 
+        .frame_cb = frame, 
+        .cleanup_cb = cleanup, 
+        .event_cb = event, 
+        .width = 800, 
+        .height = 500, 
+        .icon = icon, 
+        .sample_count = 0, 
+        .window_title = "metahome" 
     });
 }

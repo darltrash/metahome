@@ -6,6 +6,7 @@ const dialog = @import("dialog.zig");
 const assets = @import("assets.zig");
 const znt = @import("znt.zig");
 const ents = @import("entities.zig");
+const back = @import("background.zig");
 pub const chunk_size = 8 * 8;
 
 const Index = struct {
@@ -37,9 +38,14 @@ pub const Level = struct {
         width: u32,
         height: u32,
         uid: u32,
+        color_a: extra.Color,
+        color_b: extra.Color,
         tiles: [][6]f64,
         entities: []ents.Scene.OptionalEntity
     };
+
+    color_a: extra.Color,
+    color_b: extra.Color,
 
     chunks: std.AutoHashMap(Index, Chunk),
     scene: ents.Scene,
@@ -142,7 +148,9 @@ pub const Level = struct {
         for (raw) | raw_level | {
             var out_level: Level = .{
                 .chunks = std.AutoHashMap(Index, Chunk).init(allocator),
-                .scene = ents.Scene.init(main.allocator)
+                .scene = ents.Scene.init(main.allocator),
+                .color_a = raw_level.color_a,
+                .color_b = raw_level.color_b
             };
 
             for (raw_level.tiles) | tile | {
@@ -173,7 +181,6 @@ fn init() !void {
     map = try Level.fromJSON(assets.@"map_test.json", main.allocator);
     level = &map[0];
     try dialog.init(main.allocator);
-    try dialog.loadScript(assets.scripts.get("env_door_enter").?);
 }
 
 fn loop(delta: f64) !void {
@@ -183,6 +190,9 @@ fn loop(delta: f64) !void {
         .w = main.width  / main.real_camera.z, 
         .h = main.height / main.real_camera.z
     };
+
+    back.uniforms.color_a = level.color_a;
+    back.uniforms.color_b = level.color_b;
 
     var iter = level.eachChunk(cam);
     while (iter.next()) | chunk | {
@@ -212,4 +222,3 @@ pub const state = main.State {
     .init = &init,
     .loop = &loop
 };
-

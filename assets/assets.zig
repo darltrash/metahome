@@ -9,9 +9,9 @@ pub const @"mus_self_aware.mp3" = @embedFile("mus_self_aware.mp3");
 pub const @"snd_dialog.mp3" = @embedFile("snd_dialog.mp3");
 pub const scripts = @import("scripts/scripts.zig").scripts;
 
-pub const @"icons/16.png"  = @embedFile("icons/16.png" );
-pub const @"icons/32.png"  = @embedFile("icons/32.png" );
-pub const @"icons/64.png"  = @embedFile("icons/64.png" );
+pub const @"icons/16.png" = @embedFile("icons/16.png");
+pub const @"icons/32.png" = @embedFile("icons/32.png");
+pub const @"icons/64.png" = @embedFile("icons/64.png");
 pub const @"icons/256.png" = @embedFile("icons/256.png");
 
 //fn encode() []const u8 {

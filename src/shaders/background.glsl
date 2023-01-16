@@ -34,7 +34,7 @@ float rand(vec2 co){
 void main() {
     vec2 fv = floor(uv*resolution)/resolution;
     float noise = (rand(fv) - 0.5) * 0.05;
-    frag_color = mix(color_a, color_b, fv.y + noise);
+    frag_color = mix(color_a, color_b, (1.0-fv.y) + noise);
 }
 @end
 

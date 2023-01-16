@@ -3,10 +3,10 @@
 //
 //  Simple 2D rendering with vertex- and index-buffer.
 //------------------------------------------------------------------------------
-const sg    = @import("sokol").gfx;
-const sapp  = @import("sokol").app;
+const sg = @import("sokol").gfx;
+const sapp = @import("sokol").app;
 const sgapp = @import("sokol").app_gfx_glue;
-const shd   = @import("shaders/quad.glsl.zig");
+const shd = @import("shaders/quad.glsl.zig");
 
 const state = struct {
     var bind: sg.Bindings = .{};
@@ -15,26 +15,21 @@ const state = struct {
 };
 
 export fn init() void {
-    sg.setup(.{
-        .context = sgapp.context()
-    });
+    sg.setup(.{ .context = sgapp.context() });
 
     // a vertex buffer
     state.bind.vertex_buffers[0] = sg.makeBuffer(.{
         .data = sg.asRange(&[_]f32{
             // positions      colors
-            -0.5,  0.5, 0.5,  1.0, 0.0, 0.0, 1.0,
-             0.5,  0.5, 0.5,  0.0, 1.0, 0.0, 1.0,
-             0.5, -0.5, 0.5,  0.0, 0.0, 1.0, 1.0,
-            -0.5, -0.5, 0.5,  1.0, 1.0, 0.0, 1.0
-        })
+            -0.5, 0.5,  0.5, 1.0, 0.0, 0.0, 1.0,
+            0.5,  0.5,  0.5, 0.0, 1.0, 0.0, 1.0,
+            0.5,  -0.5, 0.5, 0.0, 0.0, 1.0, 1.0,
+            -0.5, -0.5, 0.5, 1.0, 1.0, 0.0, 1.0,
+        }),
     });
 
     // an index buffer
-    state.bind.index_buffer = sg.makeBuffer(.{
-        .type = .INDEXBUFFER,
-        .data = sg.asRange(&[_]u16{ 0, 1, 2, 0, 2, 3 })
-    });
+    state.bind.index_buffer = sg.makeBuffer(.{ .type = .INDEXBUFFER, .data = sg.asRange(&[_]u16{ 0, 1, 2, 0, 2, 3 }) });
 
     // a shader and pipeline state object
     var pip_desc: sg.PipelineDesc = .{
@@ -46,7 +41,7 @@ export fn init() void {
     state.pip = sg.makePipeline(pip_desc);
 
     // clear to black
-    state.pass_action.colors[0] = .{ .action=.CLEAR, .value=.{ .r=0, .g=0, .b=0, .a=1 } };
+    state.pass_action.colors[0] = .{ .action = .CLEAR, .value = .{ .r = 0, .g = 0, .b = 0, .a = 1 } };
 }
 
 export fn frame() void {
@@ -63,15 +58,7 @@ export fn cleanup() void {
 }
 
 pub fn main() void {
-    sapp.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .width = 640,
-        .height = 480,
-        .icon = .{
-            .sokol_default = true,
-        },
-        .window_title = "quad.zig"
-    });
+    sapp.run(.{ .init_cb = init, .frame_cb = frame, .cleanup_cb = cleanup, .width = 640, .height = 480, .icon = .{
+        .sokol_default = true,
+    }, .window_title = "quad.zig" });
 }
