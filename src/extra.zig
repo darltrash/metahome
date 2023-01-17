@@ -72,6 +72,14 @@ pub const Vector = struct {
             .z = a.z * b 
         };
     }
+
+    pub fn length(a: Vector) f64 {
+        var x = std.math.pow(f64, a.x, 2);
+        var y = std.math.pow(f64, a.y, 2);
+        var z = std.math.pow(f64, a.z, 2);
+        
+        return @sqrt(x + y + z);
+    }
 };
 
 pub const Collision = struct { 

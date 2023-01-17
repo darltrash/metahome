@@ -116,7 +116,6 @@ pub const Level = struct {
     }
 
     pub fn addEntity(self: *Level, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !void {
-        std.log.info("{?s}", .{entity.dialogue});
         var ent = ents.init(entity);
         var id = try self.scene.add(ent);
 
@@ -135,6 +134,30 @@ pub const Level = struct {
                 });
             }
         }
+    }
+
+    pub fn delEntity(self: *Level, id: znt.EntityId) !void {
+        var raw_collider = self.scene.getOne(.collider, id);
+
+        if (raw_collider != null) {
+            var collider = raw_collider.?.*;
+            var position = self.scene.getOne(.collider, id) orelse unreachable;
+            collider.x += position.x;
+            collider.y += position.y;
+
+            var iter = self.eachChunk(collider);
+        
+            while (iter.next()) | chunk | {
+                for (chunk.colls.items) | coll, key | {
+                    if (coll.id == id) { // Deletes itself
+                        _ = chunk.colls.swapRemove(key);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        try self.scene.del(id);
     }
 
     pub fn sortCollider(_: bool, a: extra.Collision, b: extra.Collision) bool {
@@ -175,12 +198,12 @@ pub const Level = struct {
     }
 };
 
-var map: []Level = undefined;
+var map:  []Level = undefined;
 var level: *Level = undefined;
 
 fn init() !void {
     map = try Level.fromJSON(assets.@"map_test.json", main.allocator);
-    level = &map[0];
+    level = &map[1];
     try dialog.init(main.allocator);
 }
 
@@ -205,12 +228,12 @@ fn loop(delta: f64) !void {
             //    main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
             //}
 
-            //main.outlineRect(.{
-            //    .x = @intToFloat(f64, chunk.index.x*chunk_size), 
-            //    .y = @intToFloat(f64, chunk.index.y*chunk_size),
-            //    .w = @intToFloat(f64, chunk_size), 
-            //    .h = @intToFloat(f64, chunk_size)
-            //}, .{.a=0.3});
+            main.outlineRect(.{
+                .x = @intToFloat(f64, chunk.index.x*chunk_size), 
+                .y = @intToFloat(f64, chunk.index.y*chunk_size),
+                .w = @intToFloat(f64, chunk_size), 
+                .h = @intToFloat(f64, chunk_size)
+            }, .{.a=0.3});
         }
     }
 

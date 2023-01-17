@@ -38,7 +38,7 @@ pub fn init() !void {
 }
 
 pub fn render() !void {
-    uniforms.resolution[0] = @floatCast(f32, rewrite.width / @floor(rewrite.real_camera.z));
+    uniforms.resolution[0] = @floatCast(f32, rewrite.width  / @floor(rewrite.real_camera.z));
     uniforms.resolution[1] = @floatCast(f32, rewrite.height / @floor(rewrite.real_camera.z));
     uniforms.time = @floatCast(f32, rewrite.timer);
 

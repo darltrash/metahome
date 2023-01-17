@@ -168,10 +168,10 @@ pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
     { // Velocity + Collision
         var ents = scene.iter(&.{ .position, .velocity });
         while (ents.next()) | ent | {
-            var vel = ent.velocity.*;
+            var vel: extra.Vector = ent.velocity.*;
 
             var raw_coll = scene.getOne(.collider, ent.id);
-            if (raw_coll != null) {
+            if (raw_coll != null and vel.length() > 0) {
                 var collider: extra.Rectangle = .{
                     .x = raw_coll.?.x+ent.position.x,
                     .y = raw_coll.?.y+ent.position.y,
@@ -313,7 +313,7 @@ pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
             ) {
                 _ = try dialog.loadScript(assets.scripts.get(dialogue.?.*).?);
                 ent.interact.* = .occupied;
-                try scene.del(ent.id);
+                try map.delEntity(ent.id);
             }
         }
     }

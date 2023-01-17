@@ -77,12 +77,21 @@ for _, level in ipairs(map.levels) do
                     ::continue::
                 end
 
-                fields.sprite = entity.__tile and {
-                    origin = {
-                        x = entity.__tile.x, y = entity.__tile.y,
-                        w = entity.__tile.w, h = entity.__tile.h
-                    },
-                }
+                if entity.__tile then
+                    if (entity.__tile.tilesetUid < 10) then
+                        -- we like to abstract away human personalities
+                        -- into these cartoon animals, drawings meant to
+                        -- represent a mirror of ourselves, painted over
+                        -- the idea of a being incapable of being human.
+
+                        fields.sprite = {
+                            origin = {
+                                x = entity.__tile.x, y = entity.__tile.y,
+                                w = entity.__tile.w, h = entity.__tile.h
+                            }
+                        }
+                    end
+                end
 
                 fields.position = {
                     x = entity.px[1],
