@@ -175,9 +175,15 @@ pub fn Scene(comptime EntityType: type, comptime opts: SceneOptions) type {
             return eid;
         }
 
-        pub fn del(self: *Self, id: EntityId) !void {
+        pub fn del(self: *Self, id: EntityId) !void {   
             var element = self.id_map.get(id) 
                 orelse return error.NotExists;
+
+            inline for (std.meta.fields(Component)) | _, i | {
+                if (self.components[i].count > element)
+                    try self.components[i].del(element);
+            }
+
             _ = self.id_map.remove(id);
 
             try self.entities.del(element);
@@ -187,7 +193,7 @@ pub fn Scene(comptime EntityType: type, comptime opts: SceneOptions) type {
             var id = self.rng.random().int(EntityId);
             // Set UUID variant and version
             id &= ~(@as(EntityId, 0xc0_00_f0) << (6 * 8));
-            id |= @as(EntityId, 0x80_00_40) << (6 * 8);
+            id |=   @as(EntityId, 0x80_00_40) << (6 * 8);
             return id;
         }
 

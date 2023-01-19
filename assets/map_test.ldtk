@@ -11,7 +11,7 @@
 	"iid": "3a8241a0-7820-11ed-9c66-49c9e0d4e346",
 	"jsonVersion": "1.2.5",
 	"appBuildId": 464870,
-	"nextUid": 33,
+	"nextUid": 35,
 	"identifierStyle": "Lowercase",
 	"toc": [],
 	"worldLayout": "Free",
@@ -35,7 +35,7 @@
 	"backupLimit": 10,
 	"levelNamePattern": "Level_%idx",
 	"tutorialDesc": null,
-	"customCommands": [],
+	"customCommands": [{ "command": "echo $PWD", "when": "AfterSave" }],
 	"flags": [],
 	"defs": { "layers": [
 		{
@@ -467,7 +467,10 @@
 					"max": null,
 					"regex": null,
 					"acceptFileTypes": null,
-					"defaultOverride": null,
+					"defaultOverride": {
+						"id": "V_String",
+						"params": ["available"]
+					},
 					"textLanguageMode": null,
 					"symmetricalRef": false,
 					"autoChainRef": true,
@@ -510,6 +513,38 @@
 					"allowedRefs": "OnlySame",
 					"allowedRefTags": [],
 					"tilesetUid": 1
+				},
+				{
+					"identifier": "teleport_to",
+					"doc": null,
+					"__type": "EntityRef",
+					"uid": 34,
+					"type": "F_EntityRef",
+					"isArray": false,
+					"canBeNull": true,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "RefLinkBetweenCenters",
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "DashedLine",
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null,
+					"symmetricalRef": true,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefTags": [],
+					"tilesetUid": null
 				}
 			]
 		}
@@ -843,7 +878,7 @@
 							"__tile": { "tilesetUid": 20, "x": 272, "y": 0, "w": 16, "h": 16 },
 							"__smartColor": "#FF0000",
 							"iid": "d7b99f20-7820-11ed-bcb0-135f95311291",
-							"width": 56,
+							"width": 60,
 							"height": 16,
 							"defUid": 6,
 							"px": [88,44],
@@ -936,6 +971,32 @@
 								{ "__identifier": "interact", "__value": "available", "__type": "LocalEnum.interact", "__tile": null, "defUid": 21, "realEditorValues": [{
 									"id": "V_String",
 									"params": ["available"]
+								}] }
+							]
+						},
+						{
+							"__identifier": "door",
+							"__grid": [29,10],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 },
+							"__smartColor": "#C28569",
+							"iid": "d534f650-7820-11ed-8ea9-655bb4a25106",
+							"width": 24,
+							"height": 24,
+							"defUid": 30,
+							"px": [116,40],
+							"fieldInstances": [
+								{ "__identifier": "interact", "__value": "available", "__type": "LocalEnum.interact", "__tile": null, "defUid": 31, "realEditorValues": [] },
+								{ "__identifier": "sprite", "__value": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "__type": "Tile", "__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "defUid": 32, "realEditorValues": [] },
+								{ "__identifier": "teleport_to", "__value": {
+									"entityIid": "1a8149c0-7820-11ed-8ea9-298af67285ce",
+									"layerIid": "0022fa51-7820-11ed-9843-cb7df801dc5f",
+									"levelIid": "0022fa50-7820-11ed-9843-2b786d3462da",
+									"worldIid": "79f76ad0-7820-11ed-b96d-5189dd8a2178"
+								}, "__type": "EntityRef", "__tile": null, "defUid": 34, "realEditorValues": [{
+									"id": "V_String",
+									"params": ["1a8149c0-7820-11ed-8ea9-298af67285ce"]
 								}] }
 							]
 						}
@@ -1327,23 +1388,6 @@
 							]
 						},
 						{
-							"__identifier": "decoration",
-							"__grid": [4,2],
-							"__pivot": [0,0],
-							"__tags": [],
-							"__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 },
-							"__smartColor": "#94C6D9",
-							"iid": "363040c0-7820-11ed-8ea9-0dd13808fcd5",
-							"width": 24,
-							"height": 24,
-							"defUid": 4,
-							"px": [16,8],
-							"fieldInstances": [{ "__identifier": "Tile", "__value": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "__type": "Tile", "__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "defUid": 5, "realEditorValues": [{
-								"id": "V_String",
-								"params": ["88,0,24,24"]
-							}] }]
-						},
-						{
 							"__identifier": "collider",
 							"__grid": [2,6],
 							"__pivot": [0,0],
@@ -1398,6 +1442,32 @@
 							"defUid": 6,
 							"px": [8,24],
 							"fieldInstances": [{ "__identifier": "collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 7, "realEditorValues": [] }]
+						},
+						{
+							"__identifier": "door",
+							"__grid": [4,2],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 },
+							"__smartColor": "#C28569",
+							"iid": "1a8149c0-7820-11ed-8ea9-298af67285ce",
+							"width": 24,
+							"height": 24,
+							"defUid": 30,
+							"px": [16,8],
+							"fieldInstances": [
+								{ "__identifier": "interact", "__value": "available", "__type": "LocalEnum.interact", "__tile": null, "defUid": 31, "realEditorValues": [] },
+								{ "__identifier": "sprite", "__value": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "__type": "Tile", "__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "defUid": 32, "realEditorValues": [] },
+								{ "__identifier": "teleport_to", "__value": {
+									"entityIid": "d534f650-7820-11ed-8ea9-655bb4a25106",
+									"layerIid": "6141f120-7820-11ed-80dc-37f6c5a4005c",
+									"levelIid": "3f2398a0-7820-11ed-89b6-4979b4df45a2",
+									"worldIid": "79f76ad0-7820-11ed-b96d-5189dd8a2178"
+								}, "__type": "EntityRef", "__tile": null, "defUid": 34, "realEditorValues": [{
+									"id": "V_String",
+									"params": ["d534f650-7820-11ed-8ea9-655bb4a25106"]
+								}] }
+							]
 						}
 					]
 				},

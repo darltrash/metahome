@@ -1,6 +1,6 @@
 const std = @import("std");
 const extra = @import("extra.zig");
-const main = @import("rewrite.zig");
+const main = @import("main.zig");
 const input = @import("input.zig");
 const dialog = @import("dialog.zig");
 const assets = @import("assets.zig");
@@ -34,7 +34,7 @@ pub const ColliderState = struct {
 };
 
 pub const Level = struct {
-    const ProtoMap = []struct {
+    const ProtoLevel = struct {
         width: u32,
         height: u32,
         uid: u32,
@@ -115,7 +115,7 @@ pub const Level = struct {
         return self.getChunkOrCreate(index, allocator);
     }
 
-    pub fn addEntity(self: *Level, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !void {
+    pub fn addEntity(self: *Level, entity: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !znt.EntityId {
         var ent = ents.init(entity);
         var id = try self.scene.add(ent);
 
@@ -134,6 +134,8 @@ pub const Level = struct {
                 });
             }
         }
+
+        return id;
     }
 
     pub fn delEntity(self: *Level, id: znt.EntityId) !void {
@@ -141,7 +143,7 @@ pub const Level = struct {
 
         if (raw_collider != null) {
             var collider = raw_collider.?.*;
-            var position = self.scene.getOne(.collider, id) orelse unreachable;
+            var position = self.scene.getOne(.position, id) orelse unreachable;
             collider.x += position.x;
             collider.y += position.y;
 
@@ -163,13 +165,52 @@ pub const Level = struct {
     pub fn sortCollider(_: bool, a: extra.Collision, b: extra.Collision) bool {
         return a.near < b.near;
     }
+};
 
-    pub fn fromJSON(src: []const u8, allocator: std.mem.Allocator) ![]Level {
-        var out = std.ArrayList(Level).init(allocator);
+pub const Map = struct {
+    pub const EntityReference = struct {
+        entity: znt.EntityId,
+        level: ?usize = null
+    };
+
+    transition: ?f64 = null,
+    transition_state: f64 = 0,
+
+    camera: extra.Vector = .{},
+
+    levels: []Level,
+    current: *Level,
+    next_level: ?*Level = null,
+    delete_entity: ?znt.EntityId = null,
+    entity_uuids: std.AutoHashMap(u32, EntityReference),
+
+    pub fn addEntity(self: *Map, ref: ?usize, ent: ents.Scene.OptionalEntity, allocator: std.mem.Allocator) !znt.EntityId {
+        var l: *Level = if (ref) | r | &self.levels[r] else self.current;
+        return try l.addEntity(ent, allocator);
+    }
+
+    pub fn getOne(self: *Map, ref: EntityReference, comptime opt: ents.Scene.Component) ?*std.meta.fieldInfo(ents.Scene.Entity, opt).type {
+        var l: *Level = if (ref.level) | r | &self.levels[r] else self.current;
+        return l.scene.getOne(opt, ref.entity);
+    }
+
+    pub fn delEntity(self: *Map, ref: EntityReference) !void {
+        var l: *Level = if (ref.level) | lv | &self.levels[lv] else self.current;
+        try l.delEntity(ref.entity);
+    }
+
+    pub fn fromJSON(src: []const u8, allocator: std.mem.Allocator) !Map {
+        var out_map: Map = .{
+            .levels = undefined,
+            .current = undefined,
+            .entity_uuids = std.AutoHashMap(u32, EntityReference).init(allocator)
+        };
+        
+        var levels = std.ArrayList(Level).init(allocator);
         var tokens = std.json.TokenStream.init(src);
-        var raw = try std.json.parse(ProtoMap, &tokens, .{ .allocator = allocator, .ignore_unknown_fields = true });
+        var raw = try std.json.parse([]Level.ProtoLevel, &tokens, .{ .allocator = allocator, .ignore_unknown_fields = true });
 
-        for (raw) | raw_level | {
+        for (raw) | raw_level, level_idx | {
             var out_level: Level = .{
                 .chunks = std.AutoHashMap(Index, Chunk).init(allocator),
                 .scene = ents.Scene.init(main.allocator),
@@ -188,58 +229,92 @@ pub const Level = struct {
             }
 
             for (raw_level.entities) | ent | {
-                try out_level.addEntity(ent, allocator);
+                var id = try out_level.addEntity(ent, allocator);
+                var uuid = out_level.scene.getOne(.uuid, id);
+                if (uuid != null) 
+                    try out_map.entity_uuids.put(uuid.?.*, .{
+                        .entity = id,
+                        .level = level_idx
+                    });
             }
 
-            try out.append(out_level);
+            try levels.append(out_level);
         }
 
-        return out.toOwnedSlice();
+        out_map.levels = try levels.toOwnedSlice();
+        out_map.current = &out_map.levels[0];
+
+        return out_map;
+    }
+
+    pub fn loop(self: *Map, delta: f64) !void {
+        main.camera = self.camera;
+
+        var cam: extra.Rectangle = .{
+            .x = main.real_camera.x - (main.width  / main.real_camera.z / 2), 
+            .y = main.real_camera.y - (main.height / main.real_camera.z / 2),
+            .w = main.width  / main.real_camera.z, 
+            .h = main.height / main.real_camera.z
+        };
+
+        var iter = self.current.eachChunk(cam);
+        while (iter.next()) | chunk | {
+            for (chunk.tiles.items) | tile | {
+                main.render(tile);
+            }
+
+            if (comptime main.DEBUGMODE) {
+                for (chunk.colls.items) | item | {
+                    main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
+                }
+
+                main.outlineRect(.{
+                    .x = @intToFloat(f64, chunk.index.x*chunk_size), 
+                    .y = @intToFloat(f64, chunk.index.y*chunk_size),
+                    .w = @intToFloat(f64, chunk_size), 
+                    .h = @intToFloat(f64, chunk_size)
+                }, .{.a=0.3});
+            }
+        }
+
+        try ents.process(self, delta);
+
+        try dialog.loop(delta);
+
+        back.color_a = map.current.color_a;
+        back.color_b = map.current.color_b;
+
+        self.transition_state = extra.clamp(f64, self.transition_state + (self.transition orelse 0)*delta*4, 0, 1);
+
+        back.strength = 0.3 * @floatCast(f32, 1-self.transition_state);
+
+        if (self.transition != null) {
+            if (self.transition_state == 0) 
+                self.transition = null;
+
+            if (self.transition_state == 1) {
+                if (self.delete_entity != null)
+                    try self.current.delEntity(self.delete_entity.?);
+
+                self.current = self.next_level.?;
+                self.next_level = null;
+                self.transition = -1;
+            }
+        }
+                
+        main.rect(cam, .{.r = 0, .g = 0, .b = 0, .a = @floatCast(f32, self.transition_state)});
     }
 };
 
-var map:  []Level = undefined;
-var level: *Level = undefined;
+var map: Map = undefined;
 
 fn init() !void {
-    map = try Level.fromJSON(assets.@"map_test.json", main.allocator);
-    level = &map[1];
+    map = try Map.fromJSON(assets.@"map_test.json", main.allocator);
     try dialog.init(main.allocator);
 }
 
 fn loop(delta: f64) !void {
-    var cam: extra.Rectangle = .{
-        .x = main.real_camera.x - (main.width  / main.real_camera.z / 2), 
-        .y = main.real_camera.y - (main.height / main.real_camera.z / 2),
-        .w = main.width  / main.real_camera.z, 
-        .h = main.height / main.real_camera.z
-    };
-
-    back.uniforms.color_a = level.color_a;
-    back.uniforms.color_b = level.color_b;
-
-    var iter = level.eachChunk(cam);
-    while (iter.next()) | chunk | {
-        for (chunk.tiles.items) | tile | {
-            main.render(tile);
-        }
-        if (comptime main.DEBUGMODE) {
-            //for (chunk.colls.items) | item | {
-            //    main.rect(item.collider, .{.g=0, .b=0, .a=0.3});
-            //}
-
-            main.outlineRect(.{
-                .x = @intToFloat(f64, chunk.index.x*chunk_size), 
-                .y = @intToFloat(f64, chunk.index.y*chunk_size),
-                .w = @intToFloat(f64, chunk_size), 
-                .h = @intToFloat(f64, chunk_size)
-            }, .{.a=0.3});
-        }
-    }
-
-    try ents.process(&level.scene, level, delta);
-
-    try dialog.loop(delta);
+    try map.loop(delta);
 }
 
 pub const state = main.State {

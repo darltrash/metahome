@@ -1,4 +1,5 @@
 local json = require "json"
+local msgpack = require "msgpack"
 
 local filename = assert(arg[1], "NO FILENAME GIVEN.")
 
@@ -57,10 +58,17 @@ for _, level in ipairs(map.levels) do
         elseif layer.__type == "Entities" then
             for uid, entity in ipairs(layer.entityInstances) do
                 local fields = {}
+
                 for _, v in ipairs(entity.fieldInstances) do
                     local a = v.__value
                     if v.__type == "Tile" then
                         goto continue
+                    end
+
+                    if v.__type == "EntityRef" then
+                        a = tonumber("0x"..a.entityIid:sub(31))
+                        
+                        fields.uuid = tonumber("0x"..entity.iid:sub(31))
                     end
 
                     if v.__identifier == "collider" then
@@ -107,4 +115,8 @@ end
 
 local f = assert(io.open(filename:sub(1, #filename-5)..".json", "w+"), "OUTPUT FILE COULD NOT BE OPENED.")
 f:write(json.encode(out_map))
+f:close()
+
+local f = assert(io.open(filename:sub(1, #filename-5)..".map", "w+"), "OUTPUT FILE COULD NOT BE OPENED.")
+f:write(msgpack.pack(out_map))
 f:close()

@@ -249,3 +249,7 @@ pub fn optionate(comptime T: type) type {
         .fields = &fields,
     } });
 }
+
+pub fn clamp(comptime T: type, a: T, min: T, max: T) T {
+    return @min(@max(a, min), max);
+}

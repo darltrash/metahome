@@ -3,7 +3,7 @@ const sapp = @import("sokol").app;
 const sgapp = @import("sokol").app_gfx_glue;
 const shd = @import("shaders/background.glsl.zig");
 const extra = @import("extra.zig");
-const rewrite = @import("rewrite.zig");
+const main = @import("main.zig");
 
 const state = struct {
     var bind: sg.Bindings = .{};
@@ -16,6 +16,10 @@ pub var uniforms: shd.VsUniforms = .{
     .color_b = extra.Color.fromHex(0xff5294ff), 
     .resolution = undefined, .time = 0 
 };
+
+pub var color_a = extra.Color.fromHex(0x0d02c1ff);
+pub var color_b = extra.Color.fromHex(0xff5294ff);
+pub var strength: f32 = 0.3;
 
 pub fn init() !void {
     state.bind.vertex_buffers[0] = sg.makeBuffer(.{ 
@@ -38,13 +42,16 @@ pub fn init() !void {
 }
 
 pub fn render() !void {
-    uniforms.resolution[0] = @floatCast(f32, rewrite.width  / @floor(rewrite.real_camera.z));
-    uniforms.resolution[1] = @floatCast(f32, rewrite.height / @floor(rewrite.real_camera.z));
-    uniforms.time = @floatCast(f32, rewrite.timer);
+    uniforms.resolution[0] = @floatCast(f32, main.width  / @floor(main.real_camera.z));
+    uniforms.resolution[1] = @floatCast(f32, main.height / @floor(main.real_camera.z));
+    uniforms.time = @floatCast(f32, main.timer);
 
     sg.beginDefaultPass(state.pass_action, sapp.width(), sapp.height());
     sg.applyPipeline(state.pip);
     sg.applyBindings(state.bind);
+
+    uniforms.color_a = color_a;
+    uniforms.color_b = color_b;
     sg.applyUniforms(sg.ShaderStage.FS, 0, sg.asRange(&uniforms));
     sg.draw(0, 6, 1);
     sg.endPass();

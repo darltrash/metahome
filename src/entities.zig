@@ -1,5 +1,5 @@
 const std = @import("std");
-const main = @import("rewrite.zig");
+const main = @import("main.zig");
 const input = @import("input.zig");
 const znt = @import("znt.zig");
 const extra = @import("extra.zig");
@@ -28,6 +28,8 @@ pub const Entity = struct {
     dialogue: []const u8,
     camera_focus: bool,
     controller: Controller,
+    teleport_to: u32, // UUID
+    uuid: u32, // UUID
     collider_state: world.ColliderState,
 };
 
@@ -40,15 +42,19 @@ fn sorter(_: bool, a: main.Sprite, b: main.Sprite) bool {
 
 pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
     var entity = ent;
-    if (entity.controller != null) {
-        entity.velocity = .{};
-        entity.camera_focus = true;
-        entity.collider = .{
-            .x = 3,  .y = 20, 
-            .w = 10, .h = 4
+
+    if (ent.controller != null) 
+        switch(ent.controller.?) {
+            .player => {
+                entity.velocity = .{};
+                entity.camera_focus = true;
+                entity.collider = .{
+                    .x = 3,  .y = 20, 
+                    .w = 10, .h = 4
+                };
+                entity.animated = Animated.player;
+            }
         };
-        entity.animated = Animated.player;
-    }
 
     if (entity.dialogue != null) {
         if (!assets.scripts.has(entity.dialogue.?)) {
@@ -110,12 +116,17 @@ fn getPosition(scene: *Scene, entity: znt.EntityId) extra.Vector {
 
 // TODO: Do fixed timesteps 
 // TODO: Figure out how the hell do I remove entities ._.
-pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
+pub fn process(map: *world.Map, delta: f64) !void {
+    var level = map.current;
+    var scene = &level.scene;
+
     { // Controller
         var ents = scene.iter(&.{ .velocity, .controller, .sprite, .animated });
         while (ents.next()) | ent | {
             switch(ent.controller.*) {
                 .player => {
+                    if (map.transition != null) continue;
+
                     player = ent.id;
                     var v: extra.Vector = .{};
                     const m = 60;
@@ -183,7 +194,7 @@ pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
                 // TODO: OPTIMIZE THIS HELLISH ABOMINATION.
                 {
                     var colliders = std.ArrayList(extra.Collision).init(main.allocator);
-                    var iter = map.eachChunk(collider.grow(size, size));
+                    var iter = level.eachChunk(collider.grow(size, size));
 
                     while (iter.next()) | chunk | {
                         for (chunk.colls.items) | coll, key | {
@@ -227,7 +238,7 @@ pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
                     collider.x += vel.x * delta;
                     collider.y += vel.y * delta;
 
-                    var iter = map.eachChunk(collider);
+                    var iter = level.eachChunk(collider);
                 
                     while (try iter.nextOrCreate(main.allocator)) | chunk | {
                         try chunk.colls.append(.{
@@ -304,16 +315,38 @@ pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
                 .color = .{ .a=@floatCast(f32, ent.interact_anim.*) }
             });
 
+            var trigger = near and input.down(.action) == 2 and map.transition == null;
+
             var dialogue = scene.getOne(.dialogue, ent.id);
             if (
-                dialogue != null 
-                and near 
-                and input.down(.action) == 2 
-                and !dialog.active
+                dialogue != null and trigger and !dialog.active
             ) {
                 _ = try dialog.loadScript(assets.scripts.get(dialogue.?.*).?);
                 ent.interact.* = .occupied;
-                try map.delEntity(ent.id);
+                try map.delEntity(.{ .entity = ent.id });
+            }
+
+            var teleport = scene.getOne(.teleport_to, ent.id);
+            if (
+                teleport != null and trigger
+            ) blk: {
+                var teleport_to = map.entity_uuids.get(teleport.?.*) orelse break :blk;
+                var next = &map.levels[teleport_to.level.?];
+
+                var n_pos = map.getOne(teleport_to, .position).?.*;
+                n_pos.y += 6;
+
+                _ = try next.addEntity(.{
+                    .position = n_pos,
+                    .velocity = .{},
+                    .controller = .player, 
+                    .animated = Animated.player,
+                    .sprite = .{}
+                }, main.allocator);
+
+                map.delete_entity = player;
+                map.next_level = next;
+                map.transition = 1;
             }
         }
     }
@@ -362,9 +395,9 @@ pub fn process(scene: *Scene, map: *world.Level, delta: f64) !void {
     { // CAMERA
         var ents = scene.iter(&.{ .camera_focus, .position, .sprite });
         while (ents.next()) | ent | {
-            main.camera = ent.position.*;
-            main.camera.x += ent.sprite.origin.w/2;
-            main.camera.y += ent.sprite.origin.h/2;
+            map.camera = ent.position.*;
+            map.camera.x += ent.sprite.origin.w/2;
+            map.camera.y += ent.sprite.origin.h/2;
         }
     }
 }

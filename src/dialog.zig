@@ -1,6 +1,6 @@
 const std = @import("std");
 const extra = @import("extra.zig");
-const main = @import("rewrite.zig");
+const main = @import("main.zig");
 const input = @import("input.zig");
 const audio = @import("audio.zig");
 const assets = @import("assets.zig");

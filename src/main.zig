@@ -28,7 +28,7 @@ pub const Sprite = struct {
 
 pub const State = struct { 
     init: *const (fn () anyerror!void), 
-    loop: *const (fn (f64) anyerror!void) 
+    loop: *const (fn (f64) anyerror!void)
 };
 
 var current_state: State = undefined;
@@ -349,8 +349,8 @@ export fn frame() void {
     //    outlineRect(.{.x=-125, .y=-125, .w=250, .h=250}, .{.a=0.4});
 
     var uniforms: shd.VsUniforms = .{
-        .color_a = back.uniforms.color_a,
-        .color_b = back.uniforms.color_b,
+        .color_a = back.color_a,
+        .color_b = back.color_b  
     };
 
     // Get the color with the highest luma to be the
@@ -358,7 +358,7 @@ export fn frame() void {
     if (uniforms.color_a.luma() < uniforms.color_b.luma())
         std.mem.swap(extra.Color, &uniforms.color_a, &uniforms.color_b);
 
-    uniforms.color_a.a = filter;
+    uniforms.color_a.a = back.strength;
 
     {
         var c = real_camera;

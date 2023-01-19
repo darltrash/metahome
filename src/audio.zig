@@ -1,6 +1,6 @@
 const audio = @import("sokol").audio;
 const extra = @import("extra.zig");
-const main = @import("rewrite.zig");
+const main = @import("main.zig");
 const std = @import("std");
 const c = @import("c");
 const assets = @import("assets.zig");

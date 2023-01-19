@@ -23,7 +23,7 @@ pub fn build(b: *std.build.Builder) void {
 
     const sokol_build = sokol.buildSokol(b, target, mode, config, "lib/sokol-zig/");
 
-    const exe = b.addExecutable("metahome", "src/rewrite.zig");
+    const exe = b.addExecutable("metahome", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
 
