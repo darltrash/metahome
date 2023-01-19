@@ -392,7 +392,9 @@ export fn frame() void {
         st.crlf();
         st.print("Camera: [{d:.1}, {d:.1}, {d:.1}]", .{ real_camera.x, real_camera.y, real_camera.z });
         st.crlf();
-        st.print("Sources: {}", .{audio.sources.items.len});
+        st.print("Sources: {}", .{ audio.sources.items.len });
+        st.crlf();
+        st.print("Frametime: {}", .{ @floatToInt(u64, delta * 1_000_000_000) });
 
         sg.beginDefaultPass(text_pass_action, sapp.width(), sapp.height());
         st.draw();
