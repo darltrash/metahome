@@ -21,13 +21,24 @@ pub const Image = struct {
         var b = std.io.fixedBufferStream(raw);
         var i = try png.Image.read(allocator, b.reader());
 
-        var o: Image = .{ .w = i.width, .h = i.height };
+        var o: Image = .{ 
+            .w = i.width, 
+            .h = i.height 
+        };
 
-        var img = sg.ImageDesc{ .width = @intCast(i32, i.width), .height = @intCast(i32, i.height) };
+        var img = sg.ImageDesc{ 
+            .width = @intCast(i32, i.width), 
+            .height = @intCast(i32, i.height) 
+        };
 
         var pixels = std.ArrayList(Pixel).init(allocator);
         for (i.pixels) |origin| {
-            try pixels.append(.{ .r = @floatToInt(u8, (@intToFloat(f64, origin[0]) / 65535) * 255), .g = @floatToInt(u8, (@intToFloat(f64, origin[1]) / 65535) * 255), .b = @floatToInt(u8, (@intToFloat(f64, origin[2]) / 65535) * 255), .a = @floatToInt(u8, (@intToFloat(f64, origin[3]) / 65535) * 255) });
+            try pixels.append(.{ 
+                .r = @floatToInt(u8, (@intToFloat(f64, origin[0]) / 65535) * 255), 
+                .g = @floatToInt(u8, (@intToFloat(f64, origin[1]) / 65535) * 255), 
+                .b = @floatToInt(u8, (@intToFloat(f64, origin[2]) / 65535) * 255), 
+                .a = @floatToInt(u8, (@intToFloat(f64, origin[3]) / 65535) * 255) 
+            });
         }
 
         img.data.subimage[0][0] = sg.asRange(pixels.items);
