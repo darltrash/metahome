@@ -334,7 +334,7 @@ pub fn process(map: *world.Map, delta: f64) !void {
                 var next = &map.levels[teleport_to.level.?];
 
                 var n_pos = map.getOne(teleport_to, .position).?.*;
-                n_pos.y += 6;
+                n_pos.y += 12;
 
                 _ = try next.addEntity(.{
                     .position = n_pos,

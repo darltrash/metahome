@@ -11,7 +11,7 @@
 	"iid": "3a8241a0-7820-11ed-9c66-49c9e0d4e346",
 	"jsonVersion": "1.2.5",
 	"appBuildId": 464870,
-	"nextUid": 35,
+	"nextUid": 36,
 	"identifierStyle": "Lowercase",
 	"toc": [],
 	"worldLayout": "Free",
@@ -545,6 +545,41 @@
 					"allowedRefs": "OnlySame",
 					"allowedRefTags": [],
 					"tilesetUid": null
+				},
+				{
+					"identifier": "collider",
+					"doc": null,
+					"__type": "Bool",
+					"uid": 35,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefTags": [],
+					"tilesetUid": null
 				}
 			]
 		}
@@ -976,7 +1011,7 @@
 						},
 						{
 							"__identifier": "door",
-							"__grid": [29,10],
+							"__grid": [29,9],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 },
@@ -985,7 +1020,7 @@
 							"width": 24,
 							"height": 24,
 							"defUid": 30,
-							"px": [116,40],
+							"px": [116,36],
 							"fieldInstances": [
 								{ "__identifier": "interact", "__value": "available", "__type": "LocalEnum.interact", "__tile": null, "defUid": 31, "realEditorValues": [] },
 								{ "__identifier": "sprite", "__value": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "__type": "Tile", "__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "defUid": 32, "realEditorValues": [] },
@@ -993,11 +1028,12 @@
 									"entityIid": "1a8149c0-7820-11ed-8ea9-298af67285ce",
 									"layerIid": "0022fa51-7820-11ed-9843-cb7df801dc5f",
 									"levelIid": "0022fa50-7820-11ed-9843-2b786d3462da",
-									"worldIid": "79f76ad0-7820-11ed-b96d-5189dd8a2178"
+									"worldIid": "f3f77580-7820-11ed-9ab9-6d20c4f35e81"
 								}, "__type": "EntityRef", "__tile": null, "defUid": 34, "realEditorValues": [{
 									"id": "V_String",
 									"params": ["1a8149c0-7820-11ed-8ea9-298af67285ce"]
-								}] }
+								}] },
+								{ "__identifier": "collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 35, "realEditorValues": [] }
 							]
 						}
 					]
@@ -1445,7 +1481,7 @@
 						},
 						{
 							"__identifier": "door",
-							"__grid": [4,2],
+							"__grid": [4,1],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 },
@@ -1454,7 +1490,7 @@
 							"width": 24,
 							"height": 24,
 							"defUid": 30,
-							"px": [16,8],
+							"px": [16,4],
 							"fieldInstances": [
 								{ "__identifier": "interact", "__value": "available", "__type": "LocalEnum.interact", "__tile": null, "defUid": 31, "realEditorValues": [] },
 								{ "__identifier": "sprite", "__value": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "__type": "Tile", "__tile": { "tilesetUid": 1, "x": 88, "y": 0, "w": 24, "h": 24 }, "defUid": 32, "realEditorValues": [] },
@@ -1462,11 +1498,12 @@
 									"entityIid": "d534f650-7820-11ed-8ea9-655bb4a25106",
 									"layerIid": "6141f120-7820-11ed-80dc-37f6c5a4005c",
 									"levelIid": "3f2398a0-7820-11ed-89b6-4979b4df45a2",
-									"worldIid": "79f76ad0-7820-11ed-b96d-5189dd8a2178"
+									"worldIid": "f3f77580-7820-11ed-9ab9-6d20c4f35e81"
 								}, "__type": "EntityRef", "__tile": null, "defUid": 34, "realEditorValues": [{
 									"id": "V_String",
 									"params": ["d534f650-7820-11ed-8ea9-655bb4a25106"]
-								}] }
+								}] },
+								{ "__identifier": "collider", "__value": true, "__type": "Bool", "__tile": null, "defUid": 35, "realEditorValues": [] }
 							]
 						}
 					]
