@@ -14,13 +14,13 @@ pub fn build(b: *std.build.Builder) void {
             config.backend = .gles2;
             config.force_egl = true;
         }
-        //config.enable_wayland = true;
-        //config.enable_x11 = false;
+        config.enable_wayland = b.option(bool, "wayland", "Enable Wayland support (false)") orelse false;
+        config.enable_x11 = b.option(bool, "x11", "Enable X11 support (true)") orelse true;
     }
 
     if (simon_mode)
         target.cpu_model = .{ .explicit = &std.Target.x86.cpu.athlon64 };
-
+  
     const sokol_build = sokol.buildSokol(b, target, mode, config, "lib/sokol-zig/");
 
     const exe = b.addExecutable("metahome", "src/main.zig");
@@ -48,7 +48,9 @@ pub fn build(b: *std.build.Builder) void {
     }
 
     const map_step = b.step("maps", "Compile maps (REQUIRES LUA, *NIX)");
-    map_step.dependOn(&b.addSystemCommand(&[_][]const u8{ "sh", "assets/compile_maps.sh" }).step);
+    map_step.dependOn(
+        &b.addSystemCommand(&[_][]const u8{ "sh", "assets/compile_maps.sh" }).step
+    );
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
