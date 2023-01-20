@@ -83,7 +83,7 @@ fn frame(r: extra.Rectangle) void {
     // Outline
     main.rect(.{ .x=r.x-3, .y=r.y-5, .w=r.w+6,  .h=r.h+10}, .{.r=0, .g=0, .b=0});
     main.rect(.{ .x=r.x-5, .y=r.y-3, .w=r.w+10, .h=r.h+6},  .{.r=0, .g=0, .b=0});
-    main.rect(.{ .x=r.x-4, .y=r.y-4, .w=r.w+8, . h=r.h+8},  .{.r=0, .g=0, .b=0});
+    main.rect(.{ .x=r.x-4, .y=r.y-4, .w=r.w+8,  .h=r.h+8},  .{.r=0, .g=0, .b=0});
 
     // Frame
     main.rect(.{ .x=r.x-3, .y=r.y-4, .w=r.w+6, .h=r.h+8}, .{});

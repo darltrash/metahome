@@ -40,6 +40,10 @@ fn sorter(_: bool, a: main.Sprite, b: main.Sprite) bool {
          < (b.position.y+(b.origin.h*b.scale.y));
 }
 
+fn collision_sorter(_: bool, a: extra.Collision, b: extra.Collision) bool{
+    return a.near < b.near;
+}
+
 pub fn init(ent: Scene.OptionalEntity) Scene.OptionalEntity {
     var entity = ent;
 
@@ -205,18 +209,25 @@ pub fn process(map: *world.Map, delta: f64) !void {
                         }
 
                         for (chunk.colls.items) | coll | {
+                            // HELP NEEDED:
+                            // The code in the vsKinematic has a problem, on where
+                            // the collision resolution would straight up not work
+                            // at corners of AABB elements.
+
                             var collision = coll.collider.vsKinematic(collider, vel, delta);
                             if (collision != null) {
                                 var coll_now: extra.Collision = collision.?;
                                 coll_now.collider = coll.collider;
                                 try colliders.append(coll_now);
                             } else { // TODO: FIX THIS HACK
-                                if (coll.collider.colliding(collider))
-                                    vel = .{};
+                                //if (coll.collider.colliding(collider))
+                                //    vel = .{};
                             }
                         }
                     }
 
+                    std.sort.sort(extra.Collision, colliders.items, false, collision_sorter);
+                    
                     var last: extra.Rectangle = .{};
                     for (colliders.items) | coll | {
                         if (last.equals(coll.collider)) continue;
